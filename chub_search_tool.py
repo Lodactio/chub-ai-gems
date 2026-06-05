@@ -1144,7 +1144,7 @@ def showcase_api():
 @app.route('/rss/<category>')
 def rss_feed(category=None):
     """RSS feed of top gems, optionally filtered by category."""
-    min_gem = 30
+    min_gem = 0
 
     # Use showcase data as the source — already cached and scored
     showcase = get_showcase_data()
