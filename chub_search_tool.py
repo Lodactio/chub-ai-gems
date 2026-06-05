@@ -9,7 +9,7 @@ from functools import wraps
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, render_template_string, request, jsonify
-from datetime import datetime
+from datetime import datetime, timezone
 
 def get_seasonal_topic():
     """Return a showcase topic based on the current date."""
@@ -1140,6 +1140,72 @@ def showcase_api():
     except Exception as e:
         return jsonify([])
 
+@app.route('/rss')
+@app.route('/rss/<category>')
+def rss_feed(category=None):
+    """RSS feed of top gems, optionally filtered by category."""
+    min_gem = 30
+
+    # Use showcase data as the source — already cached and scored
+    showcase = get_showcase_data()
+
+    # Validate category
+    if category:
+        valid = {topic['label'].lower() for topic in showcase}
+        if category.lower() not in valid:
+            labels = ', '.join(sorted(t['label'] for t in showcase))
+            return jsonify({'error': f'Unknown category. Available: {labels}'}), 404
+
+    items = []
+    for topic in showcase:
+        if category and topic['label'].lower() != category.lower():
+            continue
+        for card in topic.get('cards', []):
+            if card.get('gem_score', 0) >= min_gem:
+                items.append({
+                    'topic': topic['label'],
+                    'emoji': topic['emoji'],
+                    **card
+                })
+
+    items.sort(key=lambda x: x.get('gem_score', 0), reverse=True)
+    items = items[:50]
+
+    now = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S +0000')
+
+    rss_items = ''
+    for item in items:
+        link = f"https://chub.ai/characters/{item.get('author_path', '')}"
+        score = round(item.get('gem_score', 0))
+        depth = round(item.get('smoothed_depth', 0))
+        conv = round(item.get('smoothed_conversion', 0) * 100, 1)
+
+        rss_items += f"""
+        <item>
+            <title>💎 {score} — {item.get('name', 'Untitled')}</title>
+            <link>{link}</link>
+            <guid>{link}</guid>
+            <description>{item.get('topic', '')} | Depth: {depth} | Conv: {conv}% | by @{item.get('author', 'unknown')}</description>
+            <pubDate>{now}</pubDate>
+            <category>{item.get('topic', '')}</category>
+        </item>"""
+
+    title = f"Chub AI Gems — {category}" if category else "Chub AI Gems — Top Discoveries"
+
+    rss = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+    <channel>
+        <title>{title}</title>
+        <link>http://localhost:5123</link>
+        <description>High-engagement character card discoveries from Chub.ai</description>
+        <lastBuildDate>{now}</lastBuildDate>
+        <ttl>60</ttl>
+        {rss_items}
+    </channel>
+</rss>"""
+
+    response = app.response_class(rss, mimetype='application/rss+xml')
+    return response
 
 SEARCH_CACHE_MAX = 200
 
