@@ -2,7 +2,7 @@
 
 A discovery engine for [Chub.ai](https://chub.ai) character cards that surfaces hidden gems using engagement-quality scoring instead of raw popularity.
 
-![Screenshot](screenshot.png)
+![Screenshot](Screenshot.png)
 
 ## The Problem
 
