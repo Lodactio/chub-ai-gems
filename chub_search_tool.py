@@ -25,7 +25,7 @@ def get_seasonal_topic():
         ((3, 14),  (3, 20),  {'query': 'drinking lucky irish',   'emoji': '☘️', 'label': "St Patrick's", 'min_favs': 0, 'tags': 'irish,lucky,drinking'}),
         ((3, 30),  (4, 2),   {'query': 'Trickster prank',        'emoji': '🃏', 'label': 'April Fools',  'min_favs': 0, 'tags': 'trickster,prank,jester'}),
         ((3, 28),  (4, 15),  {'query': 'rabbit',                 'emoji': '🐣', 'label': 'Easter',       'min_favs': 0, 'tags': 'easter,rabbit,bunny,spring'}),
-        ((5, 15),  (8, 31),  {'query': 'summer',                 'emoji': '🏖️', 'label': 'Summer',       'min_favs': 0, 'tags': 'summer,beach,vacation,tropical'}),
+        ((5, 15),  (8, 31),  {'query': '',                 'emoji': '🏖️', 'label': 'Summer',       'min_favs': 0, 'tags': 'summer,vacation,camping,island,beach'}),
         ((11, 20), (11, 30), {'query': 'thanksgiving',           'emoji': '🦃', 'label': 'Thanksgiving', 'min_favs': 0, 'tags': 'thanksgiving,harvest,feast'}),
     ]
 
@@ -84,14 +84,16 @@ API_PER_PAGE = 200
 SHOWCASE_TOPICS = [
     {'query': 'RPG',                'emoji': '🎲', 'label': 'RPG',              'min_favs': 50,  'tags': 'rpg'},
     {'query': 'Fantasy',            'emoji': '⚔️', 'label': 'Fantasy',          'min_favs': 50,  'tags': 'fantasy,medieval,magic,elves'},
-    {'query': 'Romance',            'emoji': '💕', 'label': 'Romance',          'min_favs': 50,  'tags': 'romance,love,dating,relationship'},
+    {'query': '',            'emoji': '⚔️', 'label': 'Dark Fantasy',          'min_favs': 0,  'tags': 'dark fantasy,slave'},
+    {'query': 'Romance',            'emoji': '💕', 'label': 'Romance',          'min_favs': 30,  'tags': 'romance,love,dating,relationship,slowburn'},
     {'query': 'sci-fi',    'emoji': '🚀', 'label': 'Science Fiction',  'min_favs': 0,   'tags': 'sci-fi,science fiction,cyberpunk,space'},
-    {'query': 'Isekai',             'emoji': '⚔️', 'label': 'Isekai',           'min_favs': 100, 'tags': 'isekai,another world,reincarnation'},
+    {'query': '',             'emoji': '⚔️', 'label': 'Isekai',           'min_favs': 100, 'tags': 'isekai,reincarnation'},
     get_seasonal_topic(),
-    {'query': 'Anime',              'emoji': '🌸', 'label': 'Anime',            'min_favs': 5,   'tags': 'anime,manga,waifu'},
+    {'query': '',              'emoji': '🌸', 'label': 'Anime',            'min_favs': 0,   'tags': 'anime,manga,waifu,anime game characters,webtoon,kemonomimi,mech pilot'},
     {'query': 'Roleplay',           'emoji': '🎭', 'label': 'Roleplay',         'min_favs': 0,   'tags': 'roleplay,rp'},
-    {'query': 'apocalypse zombie',  'emoji': '🧟', 'label': 'Apocalypse',       'min_favs': 3,   'tags': 'apocalypse,zombie,survival,post-apocalyptic'},
-    {'query': 'Wholesome',          'emoji': '💛', 'label': 'Wholesome',        'min_favs': 0,   'tags': 'wholesome,cute,comfort,slice of life'},
+    {'query': '',  'emoji': '🧟', 'label': 'Apocalypse',       'min_favs': 3,   'tags': 'apocalypse,Post-apocalypse,zombies,zombie Apocalypse'},
+    {'query': 'Wholesome',          'emoji': '💛', 'label': 'Wholesome',        'min_favs': 0,   'tags': 'wholesome,cute,comfort,slice of life,can be wholesome,can be sexy'},
+    {'query': '',     'emoji': '☯', 'label': 'The Dao',        'min_favs': 0,   'tags': 'wuxia,xanxia,cultivation,dual cultivation,murim,ancient china,china'},
 ]
 SHOWCASE_CARDS_PER_TOPIC = 10
 SHOWCASE_CACHE_TTL = 86400  # 24 hours
