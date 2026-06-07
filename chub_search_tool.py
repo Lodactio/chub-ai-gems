@@ -18,15 +18,15 @@ def get_seasonal_topic():
 
     # Check date ranges (month, day_start, day_end)
     seasons = [
-        ((10, 1),  (10, 31), {'query': 'Horror halloween',          'emoji': '🎃', 'label': 'Halloween',    'min_favs': 0}),
-        ((12, 1),  (12, 31), {'query': 'Christmas winter',          'emoji': '🎄', 'label': 'Christmas',    'min_favs': 0}),
-        ((1, 1),   (1, 7),   {'query': 'New Year party',            'emoji': '🎆', 'label': 'New Year',     'min_favs': 0}),
-        ((2, 7),   (2, 21),  {'query': 'Romance love valentine',    'emoji': '💘', 'label': "Valentine's",  'min_favs': 0}),
-        ((3, 14),  (3, 20),  {'query': 'drinking lucky irish',      'emoji': '☘️', 'label': "St Patrick's", 'min_favs': 0}),
-        ((3, 30),  (4, 2),   {'query': 'Trickster prank',           'emoji': '🃏', 'label': 'April Fools',  'min_favs': 0}),  # ← before Easter
-        ((3, 28),  (4, 15),  {'query': 'rabbit',                    'emoji': '🐣', 'label': 'Easter',       'min_favs': 0}),  # ← after April Fools
-        ((5, 15),  (8, 31),  {'query': 'summer',                    'emoji': '🏖️', 'label': 'Summer',       'min_favs': 0}),
-        ((11, 20), (11, 30), {'query': 'thanksgiving',              'emoji': '🦃', 'label': 'Thanksgiving', 'min_favs': 0}),
+        ((10, 1),  (10, 31), {'query': 'Horror halloween',       'emoji': '🎃', 'label': 'Halloween',    'min_favs': 0, 'tags': 'halloween,horror,spooky,monster'}),
+        ((12, 1),  (12, 31), {'query': 'Christmas winter',       'emoji': '🎄', 'label': 'Christmas',    'min_favs': 0, 'tags': 'christmas,winter,holiday,snow'}),
+        ((1, 1),   (1, 7),   {'query': 'New Year party',         'emoji': '🎆', 'label': 'New Year',     'min_favs': 0, 'tags': 'new year,party,celebration'}),
+        ((2, 7),   (2, 21),  {'query': 'Romance love valentine', 'emoji': '💘', 'label': "Valentine's",  'min_favs': 0, 'tags': 'valentine,romance,love,dating'}),
+        ((3, 14),  (3, 20),  {'query': 'drinking lucky irish',   'emoji': '☘️', 'label': "St Patrick's", 'min_favs': 0, 'tags': 'irish,lucky,drinking'}),
+        ((3, 30),  (4, 2),   {'query': 'Trickster prank',        'emoji': '🃏', 'label': 'April Fools',  'min_favs': 0, 'tags': 'trickster,prank,jester'}),
+        ((3, 28),  (4, 15),  {'query': 'rabbit',                 'emoji': '🐣', 'label': 'Easter',       'min_favs': 0, 'tags': 'easter,rabbit,bunny,spring'}),
+        ((5, 15),  (8, 31),  {'query': 'summer',                 'emoji': '🏖️', 'label': 'Summer',       'min_favs': 0, 'tags': 'summer,beach,vacation,tropical'}),
+        ((11, 20), (11, 30), {'query': 'thanksgiving',           'emoji': '🦃', 'label': 'Thanksgiving', 'min_favs': 0, 'tags': 'thanksgiving,harvest,feast'}),
     ]
 
     for (m1, d1), (m2, d2), topic in seasons:
@@ -34,7 +34,7 @@ def get_seasonal_topic():
             return topic
 
     # Default fallback
-    return {'query': 'Goth', 'emoji': '🧛', 'label': 'Goth', 'min_favs': 300}
+    return {'query': 'Goth', 'emoji': '🧛', 'label': 'Goth', 'min_favs': 300, 'tags': 'goth,gothic,vampire,dark'}
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -82,16 +82,16 @@ PAGES_PER_SORT = 3
 API_PER_PAGE = 200
 
 SHOWCASE_TOPICS = [
-    {'query': 'RPG',       'emoji': '🎲', 'label': 'RPG',       'min_favs': 50},
-    {'query': 'Fantasy',   'emoji': '⚔️', 'label': 'Fantasy',   'min_favs': 50},
-    {'query': 'Romance',   'emoji': '💕', 'label': 'Romance',   'min_favs': 50},
-    {'query': 'Science Fiction',    'emoji': '🚀', 'label': 'Science Fiction',    'min_favs': 0},
-    {'query': 'Isekai',    'emoji': '⚔️', 'label': 'Isekai',    'min_favs': 100},
-    get_seasonal_topic(),  # ← dynamic slot
-    {'query': 'Anime',     'emoji': '🌸', 'label': 'Anime',     'min_favs': 5},
-    {'query': 'Roleplay',  'emoji': '🎭', 'label': 'Roleplay',  'min_favs': 0},
-    {'query': 'apocalypse zombie',      'emoji': '🧟', 'label': 'Apocalypse',      'min_favs': 3},
-    {'query': 'Wholesome', 'emoji': '💛', 'label': 'Wholesome', 'min_favs': 0},
+    {'query': 'RPG',                'emoji': '🎲', 'label': 'RPG',              'min_favs': 50,  'tags': 'rpg'},
+    {'query': 'Fantasy',            'emoji': '⚔️', 'label': 'Fantasy',          'min_favs': 50,  'tags': 'fantasy,medieval,magic,elves'},
+    {'query': 'Romance',            'emoji': '💕', 'label': 'Romance',          'min_favs': 50,  'tags': 'romance,love,dating,relationship'},
+    {'query': 'sci-fi',    'emoji': '🚀', 'label': 'Science Fiction',  'min_favs': 0,   'tags': 'sci-fi,science fiction,cyberpunk,space'},
+    {'query': 'Isekai',             'emoji': '⚔️', 'label': 'Isekai',           'min_favs': 100, 'tags': 'isekai,another world,reincarnation'},
+    get_seasonal_topic(),
+    {'query': 'Anime',              'emoji': '🌸', 'label': 'Anime',            'min_favs': 5,   'tags': 'anime,manga,waifu'},
+    {'query': 'Roleplay',           'emoji': '🎭', 'label': 'Roleplay',         'min_favs': 0,   'tags': 'roleplay,rp'},
+    {'query': 'apocalypse zombie',  'emoji': '🧟', 'label': 'Apocalypse',       'min_favs': 3,   'tags': 'apocalypse,zombie,survival,post-apocalyptic'},
+    {'query': 'Wholesome',          'emoji': '💛', 'label': 'Wholesome',        'min_favs': 0,   'tags': 'wholesome,cute,comfort,slice of life'},
 ]
 SHOWCASE_CARDS_PER_TOPIC = 10
 SHOWCASE_CACHE_TTL = 86400  # 24 hours
@@ -136,7 +136,7 @@ def calculate_gem_scores(cards):
     return cards
 
 
-def fetch_chub_page(query, api_page, sort_by, nsfw, headers):
+def fetch_chub_page(query, api_page, sort_by, nsfw, headers, topics='', inclusive_or=True):
     url = "https://api.chub.ai/search"
     params = {
         'search': query,
@@ -147,6 +147,9 @@ def fetch_chub_page(query, api_page, sort_by, nsfw, headers):
         'asc': 'true' if sort_by == 'created_at' else 'false',
         'nsfw': 'true' if nsfw else 'false'
     }
+    if topics.strip():
+        params['topics'] = topics.strip()
+        params['inclusive_or'] = 'true' if inclusive_or else 'false'
     try:
         r = requests.get(url, params=params, headers=headers, timeout=15)
         if r.status_code != 200:
@@ -157,18 +160,23 @@ def fetch_chub_page(query, api_page, sort_by, nsfw, headers):
         return []
 
 
-def fetch_showcase_topic(topic_query, headers):
+def fetch_showcase_topic(topic, headers):
     """Fetch a small set of cards for a showcase topic, score them, return top N."""
     url = "https://api.chub.ai/search"
     params = {
-        'search': topic_query,
+        'search': topic.get('query', ''),
         'first': 60,
         'page': '1',
         'sort': 'download_count',
         'venus': 'false',
         'asc': 'false',
-        'nsfw': 'true'
+        'nsfw': 'true',
+        'include_forks': 'false'
     }
+    # Use tags if provided for tighter showcase results
+    if topic.get('tags'):
+        params['topics'] = topic['tags']
+        params['inclusive_or'] = 'true'
     try:
         r = requests.get(url, params=params, headers=headers, timeout=10)
         if r.status_code != 200:
@@ -225,9 +233,9 @@ def get_showcase_data():
     result = []
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
-            executor.submit(fetch_showcase_topic, t['query'], headers): t
-            for t in SHOWCASE_TOPICS
-        }
+        executor.submit(fetch_showcase_topic, t, headers): t
+        for t in SHOWCASE_TOPICS
+    }
         for future in as_completed(futures):
             topic = futures[future]
             cards = future.result()
@@ -236,6 +244,7 @@ def get_showcase_data():
                 'emoji': topic['emoji'],
                 'label': topic['label'],
                 'min_favs': topic.get('min_favs', 0),
+                'tags': topic.get('tags', ''),
                 'cards': cards
             })
 
@@ -709,6 +718,16 @@ HTML_TEMPLATE = """
                             class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 pl-8 pr-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                     </div>
                 </div>
+                <div class="flex-1 min-w-[160px]">
+                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Tags <span style="color:#4b5563;font-weight:400">(comma separated)</span></label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-gray-500">
+                            <i class="fa-solid fa-tags text-xs"></i>
+                        </span>
+                        <input type="text" id="topics-input" placeholder="elf, fantasy, romance..."
+                            class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 pl-8 pr-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                </div>
                 <div class="w-40">
                     <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Sort</label>
                     <select id="sort-select" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
@@ -734,9 +753,14 @@ HTML_TEMPLATE = """
                     <input type="number" id="min-msgs" value="50" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
                 </div>
                 <div class="flex items-center gap-2.5">
+                    </label>
                     <label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
                         <input type="checkbox" id="nsfw-checkbox" checked class="w-3.5 h-3.5 rounded border-gray-700 bg-gray-950 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0">
                         NSFW
+                    </label>
+                    <label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
+                        <input type="checkbox" id="tag-or-checkbox" checked class="w-3.5 h-3.5 rounded border-gray-700 bg-gray-950 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0">
+                        OR
                     </label>
                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-1.5 px-4 rounded-lg transition inline-flex items-center gap-1.5 shadow-lg">
                         <i class="fa-solid fa-magnifying-glass text-xs"></i> Go
@@ -848,7 +872,8 @@ HTML_TEMPLATE = """
                     transform: rotate(${rotate.toFixed(1)}deg);
                 `;
                 span.addEventListener('click', () => {
-                    document.getElementById('query-input').value = tag;
+                    document.getElementById('topics-input').value = tag;
+                    document.getElementById('query-input').value = '';
                     document.getElementById('min-favs').value = '0';
                     doSearch();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -957,13 +982,14 @@ HTML_TEMPLATE = """
             if (scData.length) startScTimer();
         });
 
-function searchShowcaseTopic() {
-    const topic = scData[scIdx];
-    if (!topic) return;
-    document.getElementById('query-input').value = topic.query;
-    document.getElementById('min-favs').value = String(topic.min_favs ?? 0);
-    doSearch();
-}
+        function searchShowcaseTopic() {
+            const topic = scData[scIdx];
+            if (!topic) return;
+            document.getElementById('query-input').value = topic.query;
+            document.getElementById('topics-input').value = topic.tags || '';
+            document.getElementById('min-favs').value = String(topic.min_favs ?? 0);
+            doSearch();
+        }
 
         // ─── Main Search ───
         const CHUNK=60;
@@ -1059,6 +1085,8 @@ function searchShowcaseTopic() {
 
         function resetSearch() {
             document.getElementById('query-input').value = '';
+            document.getElementById('topics-input').value = '';
+            document.getElementById('tag-or-checkbox').checked = true;
             document.getElementById('sort-select').value = 'gem_score';
             document.getElementById('min-favs').value = '1410';
             document.getElementById('min-chats').value = '10';
@@ -1083,6 +1111,8 @@ function searchShowcaseTopic() {
             try{
                 const params=new URLSearchParams({
                     query:document.getElementById('query-input').value,
+                    topics:document.getElementById('topics-input').value,
+                    inclusive_or:document.getElementById('tag-or-checkbox').checked,
                     sort:document.getElementById('sort-select').value,
                     min_favs:document.getElementById('min-favs').value,
                     min_chats:document.getElementById('min-chats').value,
@@ -1213,6 +1243,8 @@ SEARCH_CACHE_MAX = 200
 @rate_limit
 def query_api():
     query = request.args.get('query', '')[:200]
+    topics = request.args.get('topics', '')[:500]
+    inclusive_or = request.args.get('inclusive_or', 'true') == 'true'
     sort_strategy = request.args.get('sort', 'gem_score')
     if sort_strategy not in ('gem_score', 'depth', 'conversion', 'favorites', 'downloads', 'chats', 'messages'):
         sort_strategy = 'gem_score'
@@ -1224,7 +1256,7 @@ def query_api():
     except (ValueError, TypeError): min_msgs = 0
     nsfw = request.args.get('nsfw', 'true') == 'true'
 
-    cache_key = (query.lower().strip(), sort_strategy, min_favs, min_chats, min_msgs, nsfw)
+    cache_key = (query.lower().strip(), topics.lower().strip(), inclusive_or, sort_strategy, min_favs, min_chats, min_msgs, nsfw)
     now = time.time()
 
     if cache_key in _search_cache and (now - _search_cache[cache_key]['ts']) < SEARCH_CACHE_TTL:
@@ -1247,7 +1279,7 @@ def query_api():
 
         with ThreadPoolExecutor(max_workers=18) as executor:
             futures = {
-                executor.submit(fetch_chub_page, query, pg, sort_by, nsfw, headers): (sort_by, pg)
+                executor.submit(fetch_chub_page, query, pg, sort_by, nsfw, headers, topics, inclusive_or): (sort_by, pg)
                 for sort_by, pg in jobs
             }
             for future in as_completed(futures):
