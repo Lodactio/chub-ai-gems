@@ -93,7 +93,7 @@ SHOWCASE_TOPICS = [
     {'query': 'Roleplay',           'emoji': '🎭', 'label': 'Roleplay',         'min_favs': 0,   'tags': 'roleplay,rp'},
     {'query': '',  'emoji': '🧟', 'label': 'Apocalypse',       'min_favs': 3,   'tags': 'apocalypse,Post-apocalypse,zombies,zombie Apocalypse'},
     {'query': 'Wholesome',          'emoji': '💛', 'label': 'Wholesome',        'min_favs': 0,   'tags': 'wholesome,cute,comfort,slice of life,can be wholesome,can be sexy'},
-    {'query': '',     'emoji': '☯', 'label': 'The Dao',        'min_favs': 0,   'tags': 'wuxia,xanxia,cultivation,dual cultivation,murim,ancient china,china'},
+    {'query': '',     'emoji': '☯', 'label': 'The Dao',        'min_favs': 0,   'tags': 'wuxia,xianxia,cultivation,dual cultivation,murim,ancient china,china'},
 ]
 SHOWCASE_CARDS_PER_TOPIC = 10
 SHOWCASE_CACHE_TTL = 86400  # 24 hours
