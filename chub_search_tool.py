@@ -83,6 +83,7 @@ API_PER_PAGE = 200
 
 SHOWCASE_TOPICS = [
     {'query': 'RPG',                'emoji': '🎲', 'label': 'RPG',              'min_favs': 50,  'tags': 'rpg'},
+    {'query': '', 'emoji': '🎩', 'label': 'Gentlemen', 'min_favs': 0, 'tags': 'fempov,male,human', 'exclusive': True, 'exclude_tags': ['anypov', 'feet', 'scat', 'diaper', 'vore', 'furry', 'genderswap', 'malepov', 'feminization', 'bbc', 'pokemon', 'femdom', 'ntr', 'cuckold', 'femboy', 'horny', 'cum toilet', 'goblin', 'cumdump', 'female monster']},
     {'query': 'Fantasy',            'emoji': '⚔️', 'label': 'Fantasy',          'min_favs': 50,  'tags': 'fantasy,medieval,magic,elves'},
     {'query': '',            'emoji': '⚔️', 'label': 'Dark Fantasy',          'min_favs': 0,  'tags': 'dark fantasy,slave'},
     {'query': 'Romance',            'emoji': '💕', 'label': 'Romance',          'min_favs': 30,  'tags': 'romance,love,dating,relationship,slowburn'},
@@ -178,7 +179,11 @@ def fetch_showcase_topic(topic, headers):
     # Use tags if provided for tighter showcase results
     if topic.get('tags'):
         params['topics'] = topic['tags']
-        params['inclusive_or'] = 'true'
+        # Use exclusive (AND) mode if specified, otherwise default to OR
+        if topic.get('exclusive'):
+            params['inclusive_or'] = 'false'
+        else:
+            params['inclusive_or'] = 'true'
     try:
         r = requests.get(url, params=params, headers=headers, timeout=10)
         if r.status_code != 200:
@@ -208,9 +213,26 @@ def fetch_showcase_topic(topic, headers):
                 'favorites': favs,
                 'chats': chats,
                 'messages': messages,
+                'topics': node.get('topics', []),  # needed for exclusion
                 'smoothed_depth': calculate_smoothed_depth(messages, chats),
                 'smoothed_conversion': calculate_smoothed_conversion(favs, chats, downloads),
             })
+
+        # Exclude unwanted tags
+        exclude = topic.get('exclude_tags', [])
+        if exclude:
+            exclude_lower = {t.lower().strip() for t in exclude}
+            before = len(cards)
+            cards = [
+                c for c in cards
+                if not any(
+                    t.lower().strip() in exclude_lower
+                    for t in c.get('topics', [])
+                )
+            ]
+            app.logger.info(
+                f"Showcase [{topic.get('label')}]: excluded {before - len(cards)} cards"
+            )
 
         cards = calculate_gem_scores(cards)
         cards.sort(key=lambda x: x.get('gem_score', 0), reverse=True)
@@ -247,12 +269,14 @@ def get_showcase_data():
                 'label': topic['label'],
                 'min_favs': topic.get('min_favs', 0),
                 'tags': topic.get('tags', ''),
+                'exclusive': topic.get('exclusive', False),  # ← add this
+                'exclude_tags': topic.get('exclude_tags', []),
                 'cards': cards
             })
 
     # Preserve the original topic order
-    order = {t['query']: i for i, t in enumerate(SHOWCASE_TOPICS)}
-    result.sort(key=lambda x: order.get(x['query'], 99))
+    order = {t['label']: i for i, t in enumerate(SHOWCASE_TOPICS)}
+    result.sort(key=lambda x: order.get(x['label'], 99))
 
     _showcase_cache = {'data': result, 'ts': now}
     return result
@@ -730,6 +754,18 @@ HTML_TEMPLATE = """
                             class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 pl-8 pr-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                     </div>
                 </div>
+                <div class="flex-1 min-w-[140px]">
+                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Exclude <span style="color:#4b5563;font-weight:400">(comma sep)</span>
+                    </label>
+                    <div class="relative">
+                       <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-gray-500">
+                            <i class="fa-solid fa-ban text-xs" style="color:#f43f5e"></i>
+                        </span>
+                        <input type="text" id="exclude-input" placeholder="anypov, bbc, pokemon..."
+                            class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 pl-8 pr-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-red-500 border-red-900/30">
+                    </div>
+                </div>
                 <div class="w-40">
                     <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Sort</label>
                     <select id="sort-select" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
@@ -877,6 +913,8 @@ HTML_TEMPLATE = """
                     document.getElementById('topics-input').value = tag;
                     document.getElementById('query-input').value = '';
                     document.getElementById('min-favs').value = '0';
+                    document.getElementById('exclude-input').value = '';
+                    document.getElementById('tag-or-checkbox').checked = true;
                     doSearch();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 });
@@ -990,6 +1028,9 @@ HTML_TEMPLATE = """
             document.getElementById('query-input').value = topic.query;
             document.getElementById('topics-input').value = topic.tags || '';
             document.getElementById('min-favs').value = String(topic.min_favs ?? 0);
+            // Set OR checkbox based on exclusive flag
+            document.getElementById('tag-or-checkbox').checked = !topic.exclusive;
+            document.getElementById('exclude-input').value = (topic.exclude_tags || []).join(', ');
             doSearch();
         }
 
@@ -1120,6 +1161,7 @@ HTML_TEMPLATE = """
                     min_chats:document.getElementById('min-chats').value,
                     min_msgs:document.getElementById('min-msgs').value,
                     nsfw:document.getElementById('nsfw-checkbox').checked,
+                    exclude_tags: document.getElementById('exclude-input').value,
                 });
                 const resp=await fetch(`/api/query?${params}`);
                 const data=await resp.json();
@@ -1246,6 +1288,8 @@ SEARCH_CACHE_MAX = 200
 def query_api():
     query = request.args.get('query', '')[:200]
     topics = request.args.get('topics', '')[:500]
+    exclude_raw = request.args.get('exclude_tags', '')[:500]
+    exclude_set = {t.lower().strip() for t in exclude_raw.split(',') if t.strip()}
     inclusive_or = request.args.get('inclusive_or', 'true') == 'true'
     sort_strategy = request.args.get('sort', 'gem_score')
     if sort_strategy not in ('gem_score', 'depth', 'conversion', 'favorites', 'downloads', 'chats', 'messages'):
@@ -1258,7 +1302,7 @@ def query_api():
     except (ValueError, TypeError): min_msgs = 0
     nsfw = request.args.get('nsfw', 'true') == 'true'
 
-    cache_key = (query.lower().strip(), topics.lower().strip(), inclusive_or, sort_strategy, min_favs, min_chats, min_msgs, nsfw)
+    cache_key = (query.lower().strip(), topics.lower().strip(), inclusive_or, sort_strategy, min_favs, min_chats, min_msgs, nsfw, frozenset(exclude_set))  # ← add this
     now = time.time()
 
     if cache_key in _search_cache and (now - _search_cache[cache_key]['ts']) < SEARCH_CACHE_TTL:
@@ -1310,6 +1354,11 @@ def query_api():
 
             if favs < min_favs or chats < min_chats or messages < min_msgs:
                 continue
+            # Tag exclusion
+            if exclude_set:
+                card_topics = {t.lower().strip() for t in node.get('topics', [])}
+                if card_topics & exclude_set:
+                    continue
 
             raw_depth = messages / chats if chats > 0 else 0.0
             raw_conversion = favs / chats if chats > 0 else 0.0
