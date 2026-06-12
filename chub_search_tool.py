@@ -1,5 +1,7 @@
 # chub_search_tool.py
 
+import os
+import hmac
 import math
 import time
 import logging
@@ -8,7 +10,7 @@ import requests
 from functools import wraps
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify, Response
 from datetime import datetime, timezone
 
 def get_seasonal_topic():
@@ -38,6 +40,28 @@ def get_seasonal_topic():
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
+
+# ─── Basic Auth (toggleable) ───
+# Enable by setting GEMS_AUTH_ENABLED=true and a username/password:
+#   GEMS_AUTH_ENABLED=true GEMS_AUTH_USERNAME=me GEMS_AUTH_PASSWORD=secret python chub_search_tool.py
+AUTH_ENABLED = os.environ.get('GEMS_AUTH_ENABLED', 'false').strip().lower() in ('1', 'true', 'yes', 'on')
+AUTH_USERNAME = os.environ.get('GEMS_AUTH_USERNAME', 'admin')
+AUTH_PASSWORD = os.environ.get('GEMS_AUTH_PASSWORD', '')
+
+if AUTH_ENABLED and not AUTH_PASSWORD:
+    logging.warning("GEMS_AUTH_ENABLED is set but GEMS_AUTH_PASSWORD is empty — all requests will be rejected.")
+
+@app.before_request
+def require_basic_auth():
+    if not AUTH_ENABLED:
+        return None
+    auth = request.authorization
+    if (auth and auth.type == 'basic' and AUTH_PASSWORD
+            and hmac.compare_digest(auth.username or '', AUTH_USERNAME)
+            and hmac.compare_digest(auth.password or '', AUTH_PASSWORD)):
+        return None
+    return Response('Authentication required.', 401,
+                    {'WWW-Authenticate': 'Basic realm="Chub AI Gems"'})
 
 # ─── Rate Limiter ───
 _rate_limits = defaultdict(list)
@@ -139,7 +163,8 @@ def calculate_gem_scores(cards):
     return cards
 
 
-def fetch_chub_page(query, api_page, sort_by, nsfw, headers, topics='', inclusive_or=True):
+def fetch_chub_page(query, api_page, sort_by, nsfw, headers, topics='', inclusive_or=True,
+                    min_days_ago=None, max_days_ago=None):
     url = "https://api.chub.ai/search"
     params = {
         'search': query,
@@ -153,6 +178,11 @@ def fetch_chub_page(query, api_page, sort_by, nsfw, headers, topics='', inclusiv
     if topics.strip():
         params['topics'] = topics.strip()
         params['inclusive_or'] = 'true' if inclusive_or else 'false'
+    # Chub API filters on card creation date: min/max days since creation
+    if min_days_ago is not None:
+        params['min_days_ago'] = str(min_days_ago)
+    if max_days_ago is not None:
+        params['max_days_ago'] = str(max_days_ago)
     try:
         r = requests.get(url, params=params, headers=headers, timeout=15)
         if r.status_code != 200:
@@ -790,6 +820,14 @@ HTML_TEMPLATE = """
                     <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Msg</label>
                     <input type="number" id="min-msgs" value="50" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
                 </div>
+                <div class="w-[80px]" title="Only cards at least this many days old">
+                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Days</label>
+                    <input type="number" id="min-days" min="0" placeholder="any" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="w-[80px]" title="Only cards at most this many days old">
+                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Max Days</label>
+                    <input type="number" id="max-days" min="0" placeholder="any" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
                 <div class="flex items-center gap-2.5">
                     </label>
                     <label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
@@ -1067,6 +1105,8 @@ HTML_TEMPLATE = """
             el.onclick=()=>window.open('https://chub.ai/characters/'+encodeURI(item.author_path),'_blank');
             const img=item.avatar_url||FALLBACK;
             const deep = isConv100 ? false : isDepth100 ? true : item.norm_depth > item.norm_conv;
+            const ageStat = (item.days_old==null) ? '' :
+                `<span class="h-stat" title="Created ${esc((item.created_at||'').slice(0,10))}"><i class="fa-regular fa-calendar" style="color:#f59e0b"></i><strong>${item.days_old===0?'today':fmt(item.days_old)+'d'}</strong></span>`;
             const tags=(item.topics||[]).slice(0,4).map(t=>`<span class="h-card-tag">${esc(t)}</span>`).join('');
             const srcs=(item.found_in||[]).map(s=>`<span title="${esc(s)}">${SRC[s]||s}</span>`).join('');
             el.innerHTML=`
@@ -1089,6 +1129,7 @@ HTML_TEMPLATE = """
                         <span class="h-stat"><i class="fa-solid fa-download" style="color:#22c55e"></i><strong>${fmt(item.downloads)}</strong></span>
                         <span class="h-stat"><i class="fa-solid fa-comments" style="color:#06b6d4"></i><strong>${fmt(item.chats)}</strong></span>
                         <span class="h-stat"><i class="fa-solid fa-message" style="color:#8b5cf6"></i><strong>${fmt(item.messages)}</strong></span>
+                        ${ageStat}
                         <div class="h-bar-wrap">
                             <span class="h-bar-label" style="color:#818cf8">D</span>
                             <div class="h-micro-track"><div class="h-micro-fill-d" style="width:${barPct(item.norm_depth)}%"></div></div>
@@ -1134,6 +1175,8 @@ HTML_TEMPLATE = """
             document.getElementById('min-favs').value = '1410';
             document.getElementById('min-chats').value = '10';
             document.getElementById('min-msgs').value = '50';
+            document.getElementById('min-days').value = '';
+            document.getElementById('max-days').value = '';
             document.getElementById('nsfw-checkbox').checked = true;
             doSearch();
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1162,6 +1205,8 @@ HTML_TEMPLATE = """
                     min_msgs:document.getElementById('min-msgs').value,
                     nsfw:document.getElementById('nsfw-checkbox').checked,
                     exclude_tags: document.getElementById('exclude-input').value,
+                    min_days_ago: document.getElementById('min-days').value,
+                    max_days_ago: document.getElementById('max-days').value,
                 });
                 const resp=await fetch(`/api/query?${params}`);
                 const data=await resp.json();
@@ -1302,7 +1347,18 @@ def query_api():
     except (ValueError, TypeError): min_msgs = 0
     nsfw = request.args.get('nsfw', 'true') == 'true'
 
-    cache_key = (query.lower().strip(), topics.lower().strip(), inclusive_or, sort_strategy, min_favs, min_chats, min_msgs, nsfw, frozenset(exclude_set))  # ← add this
+    def parse_days(name):
+        raw = request.args.get(name, '').strip()
+        if not raw:
+            return None
+        try:
+            return max(0, min(int(raw), 36500))
+        except (ValueError, TypeError):
+            return None
+    min_days_ago = parse_days('min_days_ago')
+    max_days_ago = parse_days('max_days_ago')
+
+    cache_key = (query.lower().strip(), topics.lower().strip(), inclusive_or, sort_strategy, min_favs, min_chats, min_msgs, nsfw, frozenset(exclude_set), min_days_ago, max_days_ago)
     now = time.time()
 
     if cache_key in _search_cache and (now - _search_cache[cache_key]['ts']) < SEARCH_CACHE_TTL:
@@ -1325,7 +1381,7 @@ def query_api():
 
         with ThreadPoolExecutor(max_workers=18) as executor:
             futures = {
-                executor.submit(fetch_chub_page, query, pg, sort_by, nsfw, headers, topics, inclusive_or): (sort_by, pg)
+                executor.submit(fetch_chub_page, query, pg, sort_by, nsfw, headers, topics, inclusive_or, min_days_ago, max_days_ago): (sort_by, pg)
                 for sort_by, pg in jobs
             }
             for future in as_completed(futures):
@@ -1371,6 +1427,15 @@ def query_api():
             smoothed_conversion = calculate_smoothed_conversion(favs, chats, downloads)
             author = fp.split('/')[0] if '/' in fp else fp
 
+            created_at = node.get('createdAt') or ''
+            days_old = None
+            if created_at:
+                try:
+                    created_dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    days_old = max(0, (datetime.now(timezone.utc) - created_dt).days)
+                except ValueError:
+                    pass
+
             processed.append({
                 'name': node.get('name', 'Untitled'),
                 'tagline': node.get('tagline', ''),
@@ -1385,6 +1450,8 @@ def query_api():
                 'raw_conversion': raw_conversion,
                 'smoothed_depth': smoothed_depth,
                 'smoothed_conversion': smoothed_conversion,
+                'created_at': created_at,
+                'days_old': days_old,
                 'topics': node.get('topics', []),
                 'found_in': sorted(list(found_in))
             })
@@ -1438,6 +1505,10 @@ if __name__ == '__main__':
     print(f"  Search: {len(SORT_STRATEGIES)} pools × {PAGES_PER_SORT} pages = {total_calls} calls")
     print(f"  Showcase: {len(SHOWCASE_TOPICS)} topics × top {SHOWCASE_CARDS_PER_TOPIC} each (cached {SHOWCASE_CACHE_TTL}s)")
     print(f"  Gem = (depth/med + conv/med) × log(favs + 1)")
+    if AUTH_ENABLED:
+        print(f"  Basic auth: ENABLED (user: {AUTH_USERNAME})")
+    else:
+        print("  Basic auth: disabled (set GEMS_AUTH_ENABLED=true to enable)")
     print("=" * 60)
     print("  http://localhost:5123")
     print("=" * 60)
