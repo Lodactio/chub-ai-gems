@@ -78,7 +78,11 @@ python chub_search_tool.py
 | **Min Fav** | 1410 | Minimum favorites threshold |
 | **Min Chat** | 10 | Minimum chat count |
 | **Min Msg** | 50 | Minimum message count |
+| **Min Days** | any | Only cards at least N days old |
+| **Max Days** | any | Only cards at most N days old (e.g. `7` = last week's releases) |
 | **NSFW** | ✅ | Include NSFW cards |
+
+Min/Max Days filter on card **creation date** and are applied server-side by the Chub API, so the whole discovery pool respects the range. Combine both for a window (e.g. Min 30 + Max 90 = cards created 1–3 months ago). Each card shows its age (🗓️) in the stats row.
 
 - Click the **💎 Chub AI Gems** title to reset to defaults
 - Click a **showcase category label** to search that topic
@@ -121,3 +125,22 @@ PRIOR_DEPTH = 12.0      # Prior assumption for depth
 C_CONV = 20.0           # Bayesian smoothing strength for conversion
 PRIOR_CONV = 0.05       # Prior assumption for conversion (5%)
 ```
+
+### Basic Auth (optional)
+
+Protect the whole app (UI, API, RSS) behind HTTP Basic Auth via environment variables:
+
+```bash
+GEMS_AUTH_ENABLED=true \
+GEMS_AUTH_USERNAME=me \
+GEMS_AUTH_PASSWORD=secret \
+bash run.sh
+```
+
+| Variable | Default | Description |
+|---|---|---|
+| `GEMS_AUTH_ENABLED` | `false` | Set to `true`/`1`/`yes`/`on` to require login |
+| `GEMS_AUTH_USERNAME` | `admin` | Login username |
+| `GEMS_AUTH_PASSWORD` | *(empty)* | Login password — must be set when auth is enabled, otherwise all requests are rejected |
+
+When disabled (the default), the app behaves exactly as before.
