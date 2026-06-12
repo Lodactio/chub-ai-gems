@@ -25,7 +25,7 @@ def get_seasonal_topic():
         ((3, 14),  (3, 20),  {'query': 'drinking lucky irish',   'emoji': '☘️', 'label': "St Patrick's", 'min_favs': 0, 'tags': 'irish,lucky,drinking'}),
         ((3, 30),  (4, 2),   {'query': 'Trickster prank',        'emoji': '🃏', 'label': 'April Fools',  'min_favs': 0, 'tags': 'trickster,prank,jester'}),
         ((3, 28),  (4, 15),  {'query': 'rabbit',                 'emoji': '🐣', 'label': 'Easter',       'min_favs': 0, 'tags': 'easter,rabbit,bunny,spring'}),
-        ((5, 15),  (8, 31),  {'query': '',                 'emoji': '🏖️', 'label': 'Summer',       'min_favs': 0, 'tags': 'summer,vacation,camping,island,beach'}),
+        ((5, 15),  (8, 31),  {'query': '',                 'emoji': '🏖️', 'label': 'Summer',       'min_favs': 0, 'tags': 'summer,vacation,camping,island,beach', 'exclude_tags': ['hyena', 'futanari', 'femboy']}),
         ((11, 20), (11, 30), {'query': 'thanksgiving',           'emoji': '🦃', 'label': 'Thanksgiving', 'min_favs': 0, 'tags': 'thanksgiving,harvest,feast'}),
     ]
 
@@ -92,7 +92,7 @@ SHOWCASE_TOPICS = [
     get_seasonal_topic(),
     {'query': '',              'emoji': '🌸', 'label': 'Anime',            'min_favs': 0,   'tags': 'anime,manga,waifu,anime game characters,webtoon,kemonomimi,mech pilot'},
     {'query': 'Roleplay',           'emoji': '🎭', 'label': 'Roleplay',         'min_favs': 0,   'tags': 'roleplay,rp'},
-    {'query': '',  'emoji': '🧟', 'label': 'Apocalypse',       'min_favs': 3,   'tags': 'apocalypse,Post-apocalypse,zombies,zombie Apocalypse'},
+    {'query': '',  'emoji': '🧟', 'label': 'Apocalypse',       'min_favs': 3,   'tags': 'apocalypse,Post-apocalypse,zombies,zombie Apocalypse', 'exclude_tags': ['futanari', 'gentle femdom']},
     {'query': 'Wholesome',          'emoji': '💛', 'label': 'Wholesome',        'min_favs': 0,   'tags': 'wholesome,cute,comfort,slice of life,can be wholesome,can be sexy'},
     {'query': '',     'emoji': '☯', 'label': 'The Dao',        'min_favs': 0,   'tags': 'wuxia,xianxia,cultivation,dual cultivation,murim,ancient china,china'},
 ]
@@ -1338,6 +1338,11 @@ def query_api():
                         continue
                     if fp in card_map:
                         card_map[fp]['found_in'].add(sort_by)
+                        # Union topics from all sources
+                        existing = set(card_map[fp]['node'].get('topics', []))
+                        incoming = set(node.get('topics', []))
+                        if incoming - existing:
+                            card_map[fp]['node']['topics'] = list(existing | incoming)
                     else:
                         card_map[fp] = {'node': node, 'found_in': {sort_by}}
 
@@ -1428,7 +1433,7 @@ def query_api():
 if __name__ == '__main__':
     total_calls = len(SORT_STRATEGIES) * PAGES_PER_SORT
     print("=" * 60)
-    print("  Chub AI Gems — Showcase Banner + Horizontal Cards")
+    print("  💎 Chub AI Gems — Showcase Banner + Horizontal Cards")
     print("=" * 60)
     print(f"  Search: {len(SORT_STRATEGIES)} pools × {PAGES_PER_SORT} pages = {total_calls} calls")
     print(f"  Showcase: {len(SHOWCASE_TOPICS)} topics × top {SHOWCASE_CARDS_PER_TOPIC} each (cached {SHOWCASE_CACHE_TTL}s)")
@@ -1440,7 +1445,18 @@ if __name__ == '__main__':
     try:
         from gunicorn.app.wsgiapp import run
         import sys
-        sys.argv = ['gunicorn', '-w', '4', '-b', '0.0.0.0:5123', 'chub_search_tool:app']
+        sys.argv = [
+            'gunicorn',
+            '-w', '4',
+            '-b', '0.0.0.0:5123',
+            '--max-requests', '1000',        # Recycle after 1000 requests
+            '--max-requests-jitter', '50',    # Stagger so they don't all die at once
+            '--timeout', '30',                # Kill stuck workers
+            '--graceful-timeout', '10',       # Give them 10s to finish up
+            '--worker-class', 'gthread',      # Threaded workers for your I/O-heavy API calls
+            '--threads', '4',                 # 4 threads per worker
+            'chub_search_tool:app'
+        ]
         run()
     except ImportError:
         from waitress import serve
