@@ -6,6 +6,7 @@ import math
 import time
 import logging
 import statistics
+import threading
 import requests
 from functools import wraps
 from collections import defaultdict
@@ -67,16 +68,22 @@ def require_basic_auth():
 _rate_limits = defaultdict(list)
 RATE_LIMIT_MAX = 10
 RATE_LIMIT_WINDOW = 60
+_rate_lock = threading.Lock()
 
 def rate_limit(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         ip = request.remote_addr
         now = time.time()
-        _rate_limits[ip] = [t for t in _rate_limits[ip] if now - t < RATE_LIMIT_WINDOW]
-        if len(_rate_limits[ip]) >= RATE_LIMIT_MAX:
+        with _rate_lock:
+            _rate_limits[ip] = [t for t in _rate_limits[ip] if now - t < RATE_LIMIT_WINDOW]
+            if len(_rate_limits[ip]) >= RATE_LIMIT_MAX:
+                limited = True
+            else:
+                _rate_limits[ip].append(now)
+                limited = False
+        if limited:
             return jsonify({'error': 'Rate limited. Try again shortly.'}), 429
-        _rate_limits[ip].append(now)
         return f(*args, **kwargs)
     return decorated
 
@@ -125,7 +132,9 @@ SHOWCASE_CACHE_TTL = 86400  # 24 hours
 
 # Simple in-memory cache for showcase data
 _showcase_cache = {'data': None, 'ts': 0}
-_search_cache = {}  # key: frozen params → {'data': ..., 'ts': ...}
+_showcase_lock = threading.Lock()
+_search_cache = {}  # key: frozen params (sort-independent) → {'processed', 'total', 'pool_size_raw', 'pool_size_unique', 'ts'}
+_search_lock = threading.Lock()
 SEARCH_CACHE_TTL = 3600  # 60 minutes
 
 
@@ -278,38 +287,43 @@ def get_showcase_data():
     if _showcase_cache['data'] and (now - _showcase_cache['ts']) < SHOWCASE_CACHE_TTL:
         return _showcase_cache['data']
 
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                      'AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/119.0.0.0 Safari/537.36'
-    }
+    with _showcase_lock:
+        now = time.time()
+        if _showcase_cache['data'] and (now - _showcase_cache['ts']) < SHOWCASE_CACHE_TTL:
+            return _showcase_cache['data']
 
-    result = []
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {
-        executor.submit(fetch_showcase_topic, t, headers): t
-        for t in SHOWCASE_TOPICS
-    }
-        for future in as_completed(futures):
-            topic = futures[future]
-            cards = future.result()
-            result.append({
-                'query': topic['query'],
-                'emoji': topic['emoji'],
-                'label': topic['label'],
-                'min_favs': topic.get('min_favs', 0),
-                'tags': topic.get('tags', ''),
-                'exclusive': topic.get('exclusive', False),  # ← add this
-                'exclude_tags': topic.get('exclude_tags', []),
-                'cards': cards
-            })
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                          'AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'Chrome/119.0.0.0 Safari/537.36'
+        }
 
-    # Preserve the original topic order
-    order = {t['label']: i for i, t in enumerate(SHOWCASE_TOPICS)}
-    result.sort(key=lambda x: order.get(x['label'], 99))
+        result = []
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {
+            executor.submit(fetch_showcase_topic, t, headers): t
+            for t in SHOWCASE_TOPICS
+        }
+            for future in as_completed(futures):
+                topic = futures[future]
+                cards = future.result()
+                result.append({
+                    'query': topic['query'],
+                    'emoji': topic['emoji'],
+                    'label': topic['label'],
+                    'min_favs': topic.get('min_favs', 0),
+                    'tags': topic.get('tags', ''),
+                    'exclusive': topic.get('exclusive', False),  # ← add this
+                    'exclude_tags': topic.get('exclude_tags', []),
+                    'cards': cards
+                })
 
-    _showcase_cache = {'data': result, 'ts': now}
-    return result
+        # Preserve the original topic order
+        order = {t['label']: i for i, t in enumerate(SHOWCASE_TOPICS)}
+        result.sort(key=lambda x: order.get(x['label'], 99))
+
+        _showcase_cache = {'data': result, 'ts': now}
+        return result
 
 
 HTML_TEMPLATE = """
@@ -1251,16 +1265,19 @@ def home():
 
 
 @app.route('/api/showcase')
+@rate_limit
 def showcase_api():
     """Return pre-scored top cards for each showcase topic. Cached for 24h."""
     try:
         data = get_showcase_data()
         return jsonify(data)
     except Exception as e:
+        app.logger.warning(f"Showcase API failed: {e}")
         return jsonify([])
 
 @app.route('/rss')
 @app.route('/rss/<category>')
+@rate_limit
 def rss_feed(category=None):
     """RSS feed of top gems, optionally filtered by category."""
     min_gem = 0
@@ -1328,6 +1345,24 @@ def rss_feed(category=None):
 
 SEARCH_CACHE_MAX = 200
 
+SORT_KEYS = {
+    'gem_score': lambda x: x.get('gem_score', 0),
+    'depth': lambda x: x['smoothed_depth'],
+    'conversion': lambda x: x['smoothed_conversion'],
+    'favorites': lambda x: x['favorites'],
+    'downloads': lambda x: x['downloads'],
+    'chats': lambda x: x['chats'],
+    'messages': lambda x: x['messages'],
+}
+
+
+def _sorted_response(entry, sort_strategy):
+    key_fn = SORT_KEYS.get(sort_strategy, SORT_KEYS['gem_score'])
+    ordered = sorted(entry['processed'], key=key_fn, reverse=True)
+    return {'results': ordered, 'total': entry['total'],
+            'pool_size_raw': entry['pool_size_raw'], 'pool_size_unique': entry['pool_size_unique']}
+
+
 @app.route('/api/query')
 @rate_limit
 def query_api():
@@ -1358,11 +1393,14 @@ def query_api():
     min_days_ago = parse_days('min_days_ago')
     max_days_ago = parse_days('max_days_ago')
 
-    cache_key = (query.lower().strip(), topics.lower().strip(), inclusive_or, sort_strategy, min_favs, min_chats, min_msgs, nsfw, frozenset(exclude_set), min_days_ago, max_days_ago)
+    cache_key = (query.lower().strip(), topics.lower().strip(), inclusive_or, min_favs, min_chats, min_msgs, nsfw, frozenset(exclude_set), min_days_ago, max_days_ago)
     now = time.time()
 
-    if cache_key in _search_cache and (now - _search_cache[cache_key]['ts']) < SEARCH_CACHE_TTL:
-        return jsonify(_search_cache[cache_key]['data'])
+    with _search_lock:
+        entry = _search_cache.get(cache_key)
+        hit = entry is not None and (now - entry['ts']) < SEARCH_CACHE_TTL
+    if hit:
+        return jsonify(_sorted_response(entry, sort_strategy))
 
     try:
         headers = {
@@ -1458,35 +1496,19 @@ def query_api():
 
         processed = calculate_gem_scores(processed)
 
-        sort_keys = {
-            'gem_score': lambda x: x.get('gem_score', 0),
-            'depth': lambda x: x['smoothed_depth'],
-            'conversion': lambda x: x['smoothed_conversion'],
-            'favorites': lambda x: x['favorites'],
-            'downloads': lambda x: x['downloads'],
-            'chats': lambda x: x['chats'],
-            'messages': lambda x: x['messages'],
-        }
-        key_fn = sort_keys.get(sort_strategy, sort_keys['gem_score'])
-        processed.sort(key=key_fn, reverse=True)
+        new_entry = {'processed': processed, 'total': len(processed),
+                     'pool_size_raw': total_raw, 'pool_size_unique': pool_unique, 'ts': now}
 
-        result = {
-            'results': processed,
-            'total': len(processed),
-            'pool_size_raw': total_raw,
-            'pool_size_unique': pool_unique
-        }
+        with _search_lock:
+            _search_cache[cache_key] = new_entry
+            stale = [k for k, v in _search_cache.items() if (now - v['ts']) > SEARCH_CACHE_TTL * 2]
+            for k in stale:
+                _search_cache.pop(k, None)
+            while len(_search_cache) > SEARCH_CACHE_MAX:
+                oldest = min(_search_cache, key=lambda k: _search_cache[k]['ts'])
+                _search_cache.pop(oldest, None)
 
-        _search_cache[cache_key] = {'data': result, 'ts': now}
-
-        stale = [k for k, v in _search_cache.items() if (now - v['ts']) > SEARCH_CACHE_TTL * 2]
-        for k in stale:
-            del _search_cache[k]
-        if len(_search_cache) > SEARCH_CACHE_MAX:
-            oldest = min(_search_cache, key=lambda k: _search_cache[k]['ts'])
-            del _search_cache[oldest]
-
-        return jsonify(result)
+        return jsonify(_sorted_response(new_entry, sort_strategy))
 
     except requests.exceptions.Timeout:
         return jsonify({'error': 'Chub API timed out.'}), 504
@@ -1516,16 +1538,18 @@ if __name__ == '__main__':
     try:
         from gunicorn.app.wsgiapp import run
         import sys
+        # Single worker + threads: in-memory caches & rate limiter are per-process,
+        # so one shared process keeps them coherent (app is I/O-bound on the Chub API).
         sys.argv = [
             'gunicorn',
-            '-w', '4',
+            '-w', '1',
             '-b', '0.0.0.0:5123',
             '--max-requests', '1000',        # Recycle after 1000 requests
             '--max-requests-jitter', '50',    # Stagger so they don't all die at once
             '--timeout', '30',                # Kill stuck workers
             '--graceful-timeout', '10',       # Give them 10s to finish up
             '--worker-class', 'gthread',      # Threaded workers for your I/O-heavy API calls
-            '--threads', '4',                 # 4 threads per worker
+            '--threads', '8',                 # 8 threads per worker
             'chub_search_tool:app'
         ]
         run()
