@@ -136,6 +136,10 @@ def calculate_smoothed_depth(n_messages, n_chats):
 
 
 def calculate_smoothed_conversion(favorites, n_chats, downloads):
+    """Conversion = favorites / exposure, where exposure = max(chats, downloads).
+
+    A card downloaded far more than it is chatted with should not look like a runaway hit.
+    """
     favorites = float(favorites or 0)
     n_chats = float(n_chats or 0)
     downloads = float(downloads or 0)

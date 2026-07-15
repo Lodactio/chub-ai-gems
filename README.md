@@ -95,7 +95,7 @@ Min/Max Days filter on card **creation date** and are applied server-side by the
 A card with 100 chats and 5,000 messages has a depth of 50 messages/chat. That means people are having real conversations, not just sending "hi" and leaving.
 
 ### Conversion Signal
-A card with 1,000 chats and 200 favorites has a 20% conversion rate. One in five people who try it love it enough to favorite — that's a strong signal regardless of total popularity.
+Conversion = favorites / exposure, where **exposure = max(chats, downloads)**. A card downloaded far more than it is chatted with should not look like a runaway hit. For example, a card with 1,000 chats, 200 downloads, and 200 favorites has a 20% conversion rate (200 / max(1000, 200) = 200 / 1000 = 20%). One in five people who try it love it enough to favorite — that's a strong signal regardless of total popularity.
 
 ### Why Not Just Favorites?
 A card with 10,000 favorites but 200,000 chats and 400,000 messages has:
