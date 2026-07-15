@@ -483,7 +483,7 @@ HTML_TEMPLATE = """
         /* ─── Card Grid ─── */
         .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
             gap: 10px;
         }
 
@@ -607,9 +607,16 @@ HTML_TEMPLATE = """
             transition: opacity 0.3s, color 0.3s;
             user-select: none;
         }
-        .tag-bg span:hover {
+        .tag-bg span:hover,
+        .tag-bg span:focus-visible {
             opacity: 0.5 !important;
             color: #a5b4fc;
+        }
+        /* Visible keyboard-focus ring for all click-activated controls */
+        [role="button"]:focus-visible {
+            outline: 2px solid #818cf8;
+            outline-offset: 2px;
+            border-radius: 4px;
         }
 
         /* ─── Shiny Card Tiers ─── */
@@ -753,7 +760,7 @@ HTML_TEMPLATE = """
     <div class="tag-bg" id="tag-bg"></div>
     <div class="max-w-[1200px] mx-auto" style="position:relative;z-index:1;">
         <header class="text-center mb-5">
-            <h1 class="text-2xl font-extrabold tracking-tight mb-1" style="cursor:pointer" onclick="resetSearch()">
+            <h1 class="text-2xl font-extrabold tracking-tight mb-1" style="cursor:pointer" role="button" tabindex="0" aria-label="Chub AI Gems — reset search to defaults" onclick="resetSearch()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();resetSearch();}">
                 <span class="text-gradient"><i class="fa-solid fa-gem mr-1"></i>Chub AI Gems</span>
             </h1>
             <p class="text-gray-500 text-xs max-w-lg mx-auto">
@@ -765,7 +772,7 @@ HTML_TEMPLATE = """
         <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 mb-5 backdrop-blur-md shadow-xl">
             <form id="search-form" class="flex flex-wrap items-end gap-2.5">
                 <div class="flex-1 min-w-[180px]">
-                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Search</label>
+                    <label for="query-input" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Search</label>
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-gray-500">
                             <i class="fa-solid fa-magnifying-glass text-xs"></i>
@@ -775,7 +782,7 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
                 <div class="flex-1 min-w-[160px]">
-                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Tags <span style="color:#4b5563;font-weight:400">(comma separated)</span></label>
+                    <label for="topics-input" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Tags <span style="color:#4b5563;font-weight:400">(comma separated)</span></label>
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-gray-500">
                             <i class="fa-solid fa-tags text-xs"></i>
@@ -785,7 +792,7 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
                 <div class="flex-1 min-w-[140px]">
-                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    <label for="exclude-input" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
                         Exclude <span style="color:#4b5563;font-weight:400">(comma sep)</span>
                     </label>
                     <div class="relative">
@@ -797,7 +804,7 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
                 <div class="w-40">
-                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Sort</label>
+                    <label for="sort-select" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Sort</label>
                     <select id="sort-select" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
                         <option value="gem_score" selected>💎 Gem Score</option>
                         <option value="depth">🔵 Depth</option>
@@ -809,27 +816,26 @@ HTML_TEMPLATE = """
                     </select>
                 </div>
                 <div class="w-[70px]">
-                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Fav</label>
+                    <label for="min-favs" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Fav</label>
                     <input type="number" id="min-favs" value="1410" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
                 </div>
                 <div class="w-[70px]">
-                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Chat</label>
+                    <label for="min-chats" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Chat</label>
                     <input type="number" id="min-chats" value="10" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
                 </div>
                 <div class="w-[70px]">
-                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Msg</label>
+                    <label for="min-msgs" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Msg</label>
                     <input type="number" id="min-msgs" value="50" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
                 </div>
                 <div class="w-[80px]" title="Only cards at least this many days old">
-                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Days</label>
+                    <label for="min-days" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Days</label>
                     <input type="number" id="min-days" min="0" placeholder="any" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                 </div>
                 <div class="w-[80px]" title="Only cards at most this many days old">
-                    <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Max Days</label>
+                    <label for="max-days" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Max Days</label>
                     <input type="number" id="max-days" min="0" placeholder="any" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                 </div>
                 <div class="flex items-center gap-2.5">
-                    </label>
                     <label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
                         <input type="checkbox" id="nsfw-checkbox" checked class="w-3.5 h-3.5 rounded border-gray-700 bg-gray-950 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0">
                         NSFW
@@ -850,13 +856,13 @@ HTML_TEMPLATE = """
             <div class="showcase-header">
                 <div class="showcase-title">
                     <span class="showcase-title-emoji" id="sc-emoji">🎲</span>
-                    <span class="showcase-title-label" id="sc-label" onclick="searchShowcaseTopic()">RPG</span>
+                    <span class="showcase-title-label" id="sc-label" role="button" tabindex="0" onclick="searchShowcaseTopic()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();searchShowcaseTopic();}">RPG</span>
                     <span style="font-size:11px;color:#4b5563;font-weight:400;margin-left:4px">— click to search</span>
                 </div>
                 <div class="showcase-nav">
-                    <button class="showcase-nav-btn" id="sc-prev" onclick="scNav(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button type="button" class="showcase-nav-btn" id="sc-prev" aria-label="Previous category" onclick="scNav(-1)"><i class="fa-solid fa-chevron-left"></i></button>
                     <span class="showcase-counter" id="sc-counter">1 / 10</span>
-                    <button class="showcase-nav-btn" id="sc-next" onclick="scNav(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button type="button" class="showcase-nav-btn" id="sc-next" aria-label="Next category" onclick="scNav(1)"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
             </div>
             <div class="showcase-viewport">
@@ -895,6 +901,16 @@ HTML_TEMPLATE = """
         function esc(s) { const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
         function fmt(n) { if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n); }
         function barPct(v) { return Math.min(Math.max((v/3)*100,2),100); }
+        // Make any element keyboard-operable as a button (role, focus, Enter/Space).
+        function makeButton(el, label, handler) {
+            el.setAttribute('role', 'button');
+            el.tabIndex = 0;
+            if (label) el.setAttribute('aria-label', label);
+            el.addEventListener('click', handler);
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(e); }
+            });
+        }
         function buildTagBackground(results) {
             const freq = {};
             results.forEach(card => {
@@ -947,7 +963,7 @@ HTML_TEMPLATE = """
                     opacity: ${opacity.toFixed(3)};
                     transform: rotate(${rotate.toFixed(1)}deg);
                 `;
-                span.addEventListener('click', () => {
+                makeButton(span, 'Search tag: ' + tag, () => {
                     document.getElementById('topics-input').value = tag;
                     document.getElementById('query-input').value = '';
                     document.getElementById('min-favs').value = '0';
@@ -993,7 +1009,7 @@ HTML_TEMPLATE = """
                     const img = card.avatar_url || FALLBACK;
                     const thumb = document.createElement('div');
                     thumb.className = 'sc-thumb';
-                    thumb.onclick = (e) => { e.stopPropagation(); window.open('https://chub.ai/characters/'+encodeURI(card.author_path),'_blank'); };
+                    makeButton(thumb, card.name || 'Open character', (e) => { e.stopPropagation(); window.open('https://chub.ai/characters/'+encodeURI(card.author_path),'_blank'); });
                     thumb.innerHTML = `
                         <div class="sc-thumb-img">
                             <img src="${img}" alt="${esc(card.name)}" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK}'">
@@ -1009,7 +1025,7 @@ HTML_TEMPLATE = """
                 // Dot
                 const dot = document.createElement('div');
                 dot.className = 'showcase-dot';
-                dot.onclick = () => { scGo(ti); resetScTimer(); };
+                makeButton(dot, 'Go to category ' + (ti + 1), () => { scGo(ti); resetScTimer(); });
                 dots.appendChild(dot);
             });
         }
@@ -1074,7 +1090,9 @@ HTML_TEMPLATE = """
 
         // ─── Main Search ───
         const CHUNK=60;
+        const SCROLL_MARGIN='600px';
         let allR=[], rendered=0, isLoading=false;
+        let searchController=null;  // aborts an in-flight search when a newer one starts
 
         function makeCard(item, rank) {
             const el=document.createElement('div');
@@ -1102,7 +1120,7 @@ HTML_TEMPLATE = """
             }
 
             el.className='h-card h-card-enter' + shinyClass;
-            el.onclick=()=>window.open('https://chub.ai/characters/'+encodeURI(item.author_path),'_blank');
+            makeButton(el, (item.name || 'Open character') + ' — open on Chub', ()=>window.open('https://chub.ai/characters/'+encodeURI(item.author_path),'_blank'));
             const img=item.avatar_url||FALLBACK;
             const deep = isConv100 ? false : isDepth100 ? true : item.norm_depth > item.norm_conv;
             const ageStat = (item.days_old==null) ? '' :
@@ -1164,7 +1182,7 @@ HTML_TEMPLATE = """
                     requestAnimationFrame(()=>{renderChunk();if(rendered>=allR.length) document.getElementById('load-more').classList.add('hidden');});
                 }
             }
-        },{rootMargin:'600px'});
+        },{rootMargin:SCROLL_MARGIN});
         obs.observe(document.getElementById('scroll-sentinel'));
 
         function resetSearch() {
@@ -1183,6 +1201,9 @@ HTML_TEMPLATE = """
         }
 
         async function doSearch() {
+            if(searchController) searchController.abort();  // cancel any previous in-flight search
+            searchController=new AbortController();
+            const signal=searchController.signal;
             const grid=document.getElementById('results-grid');
             const status=document.getElementById('status-bar');
             const stats=document.getElementById('batch-stats');
@@ -1208,8 +1229,11 @@ HTML_TEMPLATE = """
                     min_days_ago: document.getElementById('min-days').value,
                     max_days_ago: document.getElementById('max-days').value,
                 });
-                const resp=await fetch(`/api/query?${params}`);
-                const data=await resp.json();
+                const resp=await fetch(`/api/query?${params}`, {signal});
+                let data;
+                try { data=await resp.json(); }
+                catch(_) { throw new Error('Server error ('+resp.status+'). Please try again.'); }
+                if(signal.aborted) return;  // a newer search started while this one was in flight
                 document.getElementById('progress-bar').style.width='100%';
                 status.classList.add('hidden');isLoading=false;
 
@@ -1228,6 +1252,7 @@ HTML_TEMPLATE = """
                 buildTagBackground(allR);  // ← add this line
                 renderChunk();
             }catch(err){
+                if(err.name==='AbortError') return;  // superseded by a newer search; leave its state intact
                 console.error(err);status.classList.add('hidden');isLoading=false;
                 grid.innerHTML=`<div class="col-span-full text-center py-12 text-red-400"><p>${esc(err.message)}</p></div>`;
             }
