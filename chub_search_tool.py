@@ -186,10 +186,12 @@ def fetch_chub_page(query, api_page, sort_by, nsfw, headers, topics='', inclusiv
     try:
         r = requests.get(url, params=params, headers=headers, timeout=15)
         if r.status_code != 200:
+            app.logger.warning(f"Chub fetch non-200 (sort={sort_by} page={api_page}): {r.status_code}")
             return []
         data = r.json()
         return data.get('data', {}).get('nodes', [])
-    except Exception:
+    except Exception as e:
+        app.logger.warning(f"Chub fetch failed (sort={sort_by} page={api_page}): {e}")
         return []
 
 
@@ -217,6 +219,7 @@ def fetch_showcase_topic(topic, headers):
     try:
         r = requests.get(url, params=params, headers=headers, timeout=10)
         if r.status_code != 200:
+            app.logger.warning(f"Showcase fetch non-200 (topic={topic.get('label')}): {r.status_code}")
             return []
         data = r.json()
         nodes = data.get('data', {}).get('nodes', [])
@@ -267,7 +270,8 @@ def fetch_showcase_topic(topic, headers):
         cards = calculate_gem_scores(cards)
         cards.sort(key=lambda x: x.get('gem_score', 0), reverse=True)
         return cards[:SHOWCASE_CARDS_PER_TOPIC]
-    except Exception:
+    except Exception as e:
+        app.logger.warning(f"Showcase topic '{topic.get('label')}' failed: {e}")
         return []
 
 
