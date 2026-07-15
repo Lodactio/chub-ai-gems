@@ -1405,10 +1405,10 @@ def query_api():
     now = time.time()
 
     with _search_lock:
-        entry = _search_cache.get(cache_key)
-        hit = entry is not None and (now - entry['ts']) < SEARCH_CACHE_TTL
+        cached = _search_cache.get(cache_key)
+        hit = cached is not None and (now - cached['ts']) < SEARCH_CACHE_TTL
     if hit:
-        return jsonify(_sorted_response(entry, sort_strategy))
+        return jsonify(_sorted_response(cached, sort_strategy))
 
     try:
         headers = {
