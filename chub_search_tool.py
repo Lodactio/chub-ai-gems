@@ -7,6 +7,7 @@ import time
 import logging
 import statistics
 import requests
+from xml.sax.saxutils import escape as xml_escape
 from functools import wraps
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -1294,22 +1295,25 @@ def rss_feed(category=None):
 
     rss_items = ''
     for item in items:
-        link = f"https://chub.ai/characters/{item.get('author_path', '')}"
+        name = xml_escape(item.get('name', 'Untitled'))
+        author = xml_escape(item.get('author', 'unknown'))
+        topic = xml_escape(item.get('topic', ''))
+        link = "https://chub.ai/characters/" + xml_escape(item.get('author_path', ''))
         score = round(item.get('gem_score', 0))
         depth = round(item.get('smoothed_depth', 0))
         conv = round(item.get('smoothed_conversion', 0) * 100, 1)
 
         rss_items += f"""
         <item>
-            <title>💎 {score} — {item.get('name', 'Untitled')}</title>
+            <title>💎 {score} — {name}</title>
             <link>{link}</link>
             <guid>{link}</guid>
-            <description>{item.get('topic', '')} | Depth: {depth} | Conv: {conv}% | by @{item.get('author', 'unknown')}</description>
+            <description>{topic} | Depth: {depth} | Conv: {conv}% | by @{author}</description>
             <pubDate>{now}</pubDate>
-            <category>{item.get('topic', '')}</category>
+            <category>{topic}</category>
         </item>"""
 
-    title = f"Chub AI Gems — {category}" if category else "Chub AI Gems — Top Discoveries"
+    title = f"Chub AI Gems — {xml_escape(category)}" if category else "Chub AI Gems — Top Discoveries"
 
     rss = f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
