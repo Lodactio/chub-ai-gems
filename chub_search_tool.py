@@ -7,6 +7,7 @@ import time
 import logging
 import statistics
 import requests
+from xml.sax.saxutils import escape as xml_escape
 from functools import wraps
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -892,7 +893,7 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
-        function esc(s) { const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
+        function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
         function fmt(n) { if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n); }
         function barPct(v) { return Math.min(Math.max((v/3)*100,2),100); }
         function buildTagBackground(results) {
@@ -960,6 +961,7 @@ HTML_TEMPLATE = """
             });
         }
         const FALLBACK='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none"><rect width="200" height="200" fill="#1e1b4b"/><text x="100" y="110" text-anchor="middle" font-size="64" fill="#6366f1">?</text></svg>');
+        function safeImg(u){ u=String(u??''); const l=u.toLowerCase(); return (l.startsWith('http://')||l.startsWith('https://')) ? u : FALLBACK; }
         const SRC={'chat_count':'💬','download_count':'⬇️','default':'📨','fav_count':'❤️','trending':'🔥','created_at':'🆕','rating':'⭐'};
 
         // ─── Showcase ───
@@ -990,13 +992,13 @@ HTML_TEMPLATE = """
                 const slide = document.createElement('div');
                 slide.className = 'showcase-slide';
                 (topic.cards || []).forEach(card => {
-                    const img = card.avatar_url || FALLBACK;
+                    const img = safeImg(card.avatar_url);
                     const thumb = document.createElement('div');
                     thumb.className = 'sc-thumb';
                     thumb.onclick = (e) => { e.stopPropagation(); window.open('https://chub.ai/characters/'+encodeURI(card.author_path),'_blank'); };
                     thumb.innerHTML = `
                         <div class="sc-thumb-img">
-                            <img src="${img}" alt="${esc(card.name)}" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK}'">
+                            <img src="${esc(img)}" alt="${esc(card.name)}" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK}'">
                         </div>
                         <div class="sc-thumb-name" title="${esc(card.name)}">${esc(card.name)}</div>
                         <div class="sc-thumb-author">@${esc(card.author)}</div>
@@ -1103,7 +1105,7 @@ HTML_TEMPLATE = """
 
             el.className='h-card h-card-enter' + shinyClass;
             el.onclick=()=>window.open('https://chub.ai/characters/'+encodeURI(item.author_path),'_blank');
-            const img=item.avatar_url||FALLBACK;
+            const img=safeImg(item.avatar_url);
             const deep = isConv100 ? false : isDepth100 ? true : item.norm_depth > item.norm_conv;
             const ageStat = (item.days_old==null) ? '' :
                 `<span class="h-stat" title="Created ${esc((item.created_at||'').slice(0,10))}"><i class="fa-regular fa-calendar" style="color:#f59e0b"></i><strong>${item.days_old===0?'today':fmt(item.days_old)}</strong></span>`;
@@ -1111,7 +1113,7 @@ HTML_TEMPLATE = """
             const srcs=(item.found_in||[]).map(s=>`<span title="${esc(s)}">${SRC[s]||s}</span>`).join('');
             el.innerHTML=`
                 <div class="h-card-img">
-                    <img src="${img}" alt="${esc(item.name)}" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK}'">
+                    <img src="${esc(img)}" alt="${esc(item.name)}" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK}'">
                     <div class="h-card-rank">#${rank}</div>
                     <div class="h-card-signal">${deep?'🔵 Deep':'🩷 Conv'}</div>
                     ${shinyStar}
@@ -1294,22 +1296,25 @@ def rss_feed(category=None):
 
     rss_items = ''
     for item in items:
-        link = f"https://chub.ai/characters/{item.get('author_path', '')}"
+        name = xml_escape(item.get('name', 'Untitled'))
+        author = xml_escape(item.get('author', 'unknown'))
+        topic = xml_escape(item.get('topic', ''))
+        link = "https://chub.ai/characters/" + xml_escape(item.get('author_path', ''))
         score = round(item.get('gem_score', 0))
         depth = round(item.get('smoothed_depth', 0))
         conv = round(item.get('smoothed_conversion', 0) * 100, 1)
 
         rss_items += f"""
         <item>
-            <title>💎 {score} — {item.get('name', 'Untitled')}</title>
+            <title>💎 {score} — {name}</title>
             <link>{link}</link>
             <guid>{link}</guid>
-            <description>{item.get('topic', '')} | Depth: {depth} | Conv: {conv}% | by @{item.get('author', 'unknown')}</description>
+            <description>{topic} | Depth: {depth} | Conv: {conv}% | by @{author}</description>
             <pubDate>{now}</pubDate>
-            <category>{item.get('topic', '')}</category>
+            <category>{topic}</category>
         </item>"""
 
-    title = f"Chub AI Gems — {category}" if category else "Chub AI Gems — Top Discoveries"
+    title = f"Chub AI Gems — {xml_escape(category)}" if category else "Chub AI Gems — Top Discoveries"
 
     rss = f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
