@@ -1145,7 +1145,7 @@ HTML_TEMPLATE = """
 
             el.className='h-card h-card-enter' + shinyClass;
             makeButton(el, (item.name || 'Open character') + ' — open on Chub', ()=>window.open('https://chub.ai/characters/'+encodeURI(item.author_path),'_blank'));
-            const img=item.avatar_url||FALLBACK;
+            const img=safeImg(item.avatar_url);
             const deep = isConv100 ? false : isDepth100 ? true : item.norm_depth > item.norm_conv;
             const ageStat = (item.days_old==null) ? '' :
                 `<span class="h-stat" title="Created ${esc((item.created_at||'').slice(0,10))}"><i class="fa-regular fa-calendar" style="color:#f59e0b"></i><strong>${item.days_old===0?'today':fmt(item.days_old)}</strong></span>`;
