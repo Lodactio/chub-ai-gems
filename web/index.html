@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chub AI Gems Search</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💎</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body class="min-h-screen py-6 px-4 sm:px-6 lg:px-8">
+    <div class="tag-bg" id="tag-bg"></div>
+    <div class="max-w-[1200px] mx-auto" style="position:relative;z-index:1;">
+        <header class="text-center mb-5">
+            <h1 class="text-2xl font-extrabold tracking-tight mb-1" style="cursor:pointer" role="button" tabindex="0" aria-label="Chub AI Gems — reset search to defaults" onclick="resetSearch()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();resetSearch();}">
+                <span class="text-gradient"><i class="fa-solid fa-gem mr-1"></i>Chub AI Gems</span>
+            </h1>
+            <p class="text-gray-500 text-xs max-w-lg mx-auto">
+                7 discovery pools · Dual-signal scoring · <strong class="text-gray-400">Depth × Conversion × Favorites</strong>
+            </p>
+        </header>
+
+        <!-- Search bar -->
+        <div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 mb-5 backdrop-blur-md shadow-xl">
+            <form id="search-form" class="flex flex-wrap items-end gap-2.5">
+                <div class="flex-1 min-w-[180px]">
+                    <label for="query-input" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Search</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-gray-500">
+                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                        </span>
+                        <input type="text" id="query-input" placeholder="Blank = global top..."
+                            class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 pl-8 pr-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div class="flex-1 min-w-[160px]">
+                    <label for="topics-input" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Tags <span style="color:#4b5563;font-weight:400">(comma separated)</span></label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-gray-500">
+                            <i class="fa-solid fa-tags text-xs"></i>
+                        </span>
+                        <input type="text" id="topics-input" placeholder="elf, fantasy, romance..."
+                            class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 pl-8 pr-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div class="flex-1 min-w-[140px]">
+                    <label for="exclude-input" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Exclude <span style="color:#4b5563;font-weight:400">(comma sep)</span>
+                    </label>
+                    <div class="relative">
+                       <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-gray-500">
+                            <i class="fa-solid fa-ban text-xs" style="color:#f43f5e"></i>
+                        </span>
+                        <input type="text" id="exclude-input" placeholder="anypov, bbc, pokemon..."
+                            class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 pl-8 pr-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-red-500 border-red-900/30">
+                    </div>
+                </div>
+                <div class="w-40">
+                    <label for="sort-select" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Sort</label>
+                    <select id="sort-select" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        <option value="gem_score" selected>💎 Gem Score</option>
+                        <option value="depth">🔵 Depth</option>
+                        <option value="conversion">🩷 Conversion</option>
+                        <option value="favorites">❤️ Favorites</option>
+                        <option value="downloads">⬇️ Downloads</option>
+                        <option value="chats">💬 Chats</option>
+                        <option value="messages">📨 Messages</option>
+                    </select>
+                </div>
+                <div class="w-[70px]">
+                    <label for="min-favs" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Fav</label>
+                    <input type="number" id="min-favs" value="1410" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="w-[70px]">
+                    <label for="min-chats" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Chat</label>
+                    <input type="number" id="min-chats" value="10" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="w-[70px]">
+                    <label for="min-msgs" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Msg</label>
+                    <input type="number" id="min-msgs" value="50" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="w-[80px]" title="Only cards at least this many days old">
+                    <label for="min-days" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Days</label>
+                    <input type="number" id="min-days" min="0" placeholder="any" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="w-[80px]" title="Only cards at most this many days old">
+                    <label for="max-days" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Max Days</label>
+                    <input type="number" id="max-days" min="0" placeholder="any" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="flex items-center gap-2.5">
+                    <label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
+                        <input type="checkbox" id="nsfw-checkbox" checked class="w-3.5 h-3.5 rounded border-gray-700 bg-gray-950 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0">
+                        NSFW
+                    </label>
+                    <label class="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
+                        <input type="checkbox" id="tag-or-checkbox" checked class="w-3.5 h-3.5 rounded border-gray-700 bg-gray-950 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0">
+                        OR
+                    </label>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-1.5 px-4 rounded-lg transition inline-flex items-center gap-1.5 shadow-lg">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i> Go
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Showcase Banner -->
+        <div class="showcase-wrap" id="showcase-wrap">
+            <div class="showcase-header">
+                <div class="showcase-title">
+                    <span class="showcase-title-emoji" id="sc-emoji">🎲</span>
+                    <span class="showcase-title-label" id="sc-label" role="button" tabindex="0" onclick="searchShowcaseTopic()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();searchShowcaseTopic();}">RPG</span>
+                    <span style="font-size:11px;color:#4b5563;font-weight:400;margin-left:4px">— click to search</span>
+                </div>
+                <div class="showcase-nav">
+                    <button type="button" class="showcase-nav-btn" id="sc-prev" aria-label="Previous category" onclick="scNav(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span class="showcase-counter" id="sc-counter">1 / 10</span>
+                    <button type="button" class="showcase-nav-btn" id="sc-next" aria-label="Next category" onclick="scNav(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="showcase-viewport">
+                <div class="showcase-track" id="sc-track"></div>
+            </div>
+            <div class="showcase-dots" id="sc-dots"></div>
+        </div>
+
+        <!-- Loading -->
+        <div id="status-bar" class="hidden bg-indigo-950/40 border border-indigo-900 rounded-lg p-3 mb-4 text-center text-indigo-200 text-sm">
+            <i class="fa-solid fa-spinner fa-spin mr-1"></i>
+            <span id="status-text">Pulling from 7 pools...</span>
+            <div class="pool-progress mt-2"><div class="pool-progress-bar" id="progress-bar" style="width:0%"></div></div>
+        </div>
+
+        <!-- Stats -->
+        <div id="batch-stats" class="hidden bg-gray-900/40 border border-gray-800 rounded-lg px-4 py-2 mb-4">
+            <div class="flex flex-wrap justify-center gap-x-5 gap-y-1 text-[11px] text-gray-500">
+                <span>Raw: <strong class="text-gray-300" id="stat-pool">—</strong></span>
+                <span>Unique: <strong class="text-gray-300" id="stat-unique">—</strong></span>
+                <span>Filtered: <strong class="text-gray-300" id="stat-filtered">—</strong></span>
+                <span>Med Depth: <strong class="text-gray-300" id="stat-med-depth">—</strong></span>
+                <span>Med Conv: <strong class="text-gray-300" id="stat-med-conv">—</strong></span>
+                <span>Top: <strong class="text-gray-300" id="stat-top-gem">—</strong></span>
+            </div>
+        </div>
+
+        <!-- Card Grid -->
+        <div id="results-grid" class="card-grid"></div>
+        <div id="scroll-sentinel"></div>
+        <div id="load-more" class="load-ind hidden"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Loading more...</div>
+        <div id="end-marker" class="load-ind done hidden"><i class="fa-solid fa-check-circle mr-1"></i> All cards loaded</div>
+    </div>
+
+    <script>
+        function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+        function fmt(n) { if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n); }
+        function barPct(v) { return Math.min(Math.max((v/3)*100,2),100); }
+        // Make any element keyboard-operable as a button (role, focus, Enter/Space).
+        function makeButton(el, label, handler) {
+            el.setAttribute('role', 'button');
+            el.tabIndex = 0;
+            if (label) el.setAttribute('aria-label', label);
+            el.addEventListener('click', handler);
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(e); }
+            });
+        }
+        function buildTagBackground(results) {
+            const freq = {};
+            results.forEach(card => {
+                (card.topics || []).forEach(tag => {
+                    const t = tag.toLowerCase().trim();
+                    if (t) freq[t] = (freq[t] || 0) + 1;
+                });
+            });
+
+            const sorted = Object.entries(freq)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 80);
+
+            if (!sorted.length) return;
+
+            const container = document.getElementById('tag-bg');
+            container.innerHTML = '';
+
+            const maxCount = sorted[0][1];
+            const minCount = sorted[sorted.length - 1][1];
+            const range = Math.max(maxCount - minCount, 1);
+
+            const vw = window.innerWidth;
+            const vh = window.innerHeight * 3;
+
+            const cols = 6;
+            const rows = Math.ceil(sorted.length / cols);
+            const cellW = vw / cols;
+            const cellH = vh / rows;
+
+            sorted.forEach(([tag, count], i) => {
+                const ratio = (count - minCount) / range;
+                const size = 12 + ratio * 32;
+                const opacity = 0.04 + ratio * 0.08;
+
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+
+                const x = col * cellW + (Math.random() * cellW * 0.7);
+                const y = row * cellH + (Math.random() * cellH * 0.6);
+                const rotate = (Math.random() - 0.5) * 30;
+
+                const span = document.createElement('span');
+                span.textContent = tag;
+                span.title = tag + ' (' + count + ')';
+                span.style.cssText = `
+                    left: ${x}px;
+                    top: ${y}px;
+                    font-size: ${size.toFixed(1)}px;
+                    opacity: ${opacity.toFixed(3)};
+                    transform: rotate(${rotate.toFixed(1)}deg);
+                `;
+                makeButton(span, 'Search tag: ' + tag, () => {
+                    document.getElementById('topics-input').value = tag;
+                    document.getElementById('query-input').value = '';
+                    document.getElementById('min-favs').value = '0';
+                    document.getElementById('exclude-input').value = '';
+                    document.getElementById('tag-or-checkbox').checked = true;
+                    doSearch();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+                container.appendChild(span);
+            });
+        }
+        const FALLBACK='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none"><rect width="200" height="200" fill="#1e1b4b"/><text x="100" y="110" text-anchor="middle" font-size="64" fill="#6366f1">?</text></svg>');
+        function safeImg(u){ u=String(u??''); const l=u.toLowerCase(); return (l.startsWith('http://')||l.startsWith('https://')) ? u : FALLBACK; }
+        const SRC={'chat_count':'💬','download_count':'⬇️','default':'📨','fav_count':'❤️','trending':'🔥','created_at':'🆕','rating':'⭐'};
+
+        // ─── Showcase ───
+        let scData = [];
+        let scIdx = 0;
+        let scTimer = null;
+        const SC_INTERVAL = 6000;
+
+        async function loadShowcase() {
+            try {
+                const r = await fetch('/api/showcase');
+                scData = await r.json();
+                if (!scData.length) return;
+                buildShowcase();
+                scGo(0);
+                startScTimer();
+            } catch(e) { console.warn('Showcase load failed:', e); }
+        }
+
+        function buildShowcase() {
+            const track = document.getElementById('sc-track');
+            const dots = document.getElementById('sc-dots');
+            track.innerHTML = '';
+            dots.innerHTML = '';
+
+            scData.forEach((topic, ti) => {
+                // Slide
+                const slide = document.createElement('div');
+                slide.className = 'showcase-slide';
+                (topic.cards || []).forEach(card => {
+                    const img = safeImg(card.avatar_url);
+                    const thumb = document.createElement('div');
+                    thumb.className = 'sc-thumb';
+                    makeButton(thumb, card.name || 'Open character', (e) => { e.stopPropagation(); window.open('https://chub.ai/characters/'+encodeURI(card.author_path),'_blank'); });
+                    thumb.innerHTML = `
+                        <div class="sc-thumb-img">
+                            <img src="${esc(img)}" alt="${esc(card.name)}" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK}'">
+                        </div>
+                        <div class="sc-thumb-name" title="${esc(card.name)}">${esc(card.name)}</div>
+                        <div class="sc-thumb-author">@${esc(card.author)}</div>
+                        <div class="sc-thumb-gem">💎 ${fmt(Math.round(card.gem_score||0))}</div>
+                    `;
+                    slide.appendChild(thumb);
+                });
+                track.appendChild(slide);
+
+                // Dot
+                const dot = document.createElement('div');
+                dot.className = 'showcase-dot';
+                makeButton(dot, 'Go to category ' + (ti + 1), () => { scGo(ti); resetScTimer(); });
+                dots.appendChild(dot);
+            });
+        }
+
+        function scGo(idx) {
+            scIdx = idx;
+            const track = document.getElementById('sc-track');
+            track.style.transform = `translateX(-${idx * 100}%)`;
+
+            // Update header
+            const topic = scData[idx];
+            document.getElementById('sc-emoji').textContent = topic.emoji;
+            document.getElementById('sc-label').textContent = topic.label;
+            document.getElementById('sc-counter').textContent = `${idx+1} / ${scData.length}`;
+
+            // Update dots
+            document.querySelectorAll('.showcase-dot').forEach((d,i) => {
+                d.classList.toggle('active', i === idx);
+            });
+        }
+
+        let scPaused = false;
+
+        function scNav(dir) {
+            let next = scIdx + dir;
+            if (next < 0) next = scData.length - 1;
+            if (next >= scData.length) next = 0;
+            scGo(next);
+            if (!scPaused) resetScTimer();
+        }
+
+        function startScTimer() {
+            clearInterval(scTimer);
+            scTimer = setInterval(() => { scNav(1); }, SC_INTERVAL);
+        }
+        function resetScTimer() {
+            clearInterval(scTimer);
+            startScTimer();
+        }
+
+        // Pause on hover — full stop, fresh timer on leave
+        document.getElementById('showcase-wrap').addEventListener('mouseenter', () => {
+            scPaused = true;
+            clearInterval(scTimer);
+        });
+        document.getElementById('showcase-wrap').addEventListener('mouseleave', () => {
+            scPaused = false;
+            if (scData.length) startScTimer();
+        });
+
+        function searchShowcaseTopic() {
+            const topic = scData[scIdx];
+            if (!topic) return;
+            document.getElementById('query-input').value = topic.query;
+            document.getElementById('topics-input').value = topic.tags || '';
+            document.getElementById('min-favs').value = String(topic.min_favs ?? 0);
+            // Set OR checkbox based on exclusive flag
+            document.getElementById('tag-or-checkbox').checked = !topic.exclusive;
+            document.getElementById('exclude-input').value = (topic.exclude_tags || []).join(', ');
+            doSearch();
+        }
+
+        // ─── Main Search ───
+        const CHUNK=60;
+        const SCROLL_MARGIN='600px';
+        let allR=[], rendered=0, isLoading=false;
+        let searchController=null;  // aborts an in-flight search when a newer one starts
+
+        function makeCard(item, rank) {
+            const el=document.createElement('div');
+
+            // Determine shiny tiers
+            const isGem50 = item.gem_score >= 60;
+            const isDepth100 = item.smoothed_depth >= 30;
+            const isConv100 = item.smoothed_conversion >= 0.20;
+            const shinyCount = (isGem50?1:0) + (isDepth100?1:0) + (isConv100?1:0);
+
+            let shinyClass = '';
+            let shinyStar = '';
+            if (shinyCount >= 2) {
+                shinyClass = ' shiny-multi';
+                shinyStar = '<div class="shiny-star">🌟</div>';
+            } else if (isGem50) {
+                shinyClass = ' shiny-gold';
+                shinyStar = '<div class="shiny-star">⭐</div>';
+            } else if (isDepth100) {
+                shinyClass = ' shiny-depth';
+                shinyStar = '<div class="shiny-star">💠</div>';
+            } else if (isConv100) {
+                shinyClass = ' shiny-conv';
+                shinyStar = '<div class="shiny-star">💗</div>';
+            }
+
+            el.className='h-card h-card-enter' + shinyClass;
+            makeButton(el, (item.name || 'Open character') + ' — open on Chub', ()=>window.open('https://chub.ai/characters/'+encodeURI(item.author_path),'_blank'));
+            const img=item.avatar_url||FALLBACK;
+            const deep = isConv100 ? false : isDepth100 ? true : item.norm_depth > item.norm_conv;
+            const ageStat = (item.days_old==null) ? '' :
+                `<span class="h-stat" title="Created ${esc((item.created_at||'').slice(0,10))}"><i class="fa-regular fa-calendar" style="color:#f59e0b"></i><strong>${item.days_old===0?'today':fmt(item.days_old)}</strong></span>`;
+            const tags=(item.topics||[]).slice(0,4).map(t=>`<span class="h-card-tag">${esc(t)}</span>`).join('');
+            const srcs=(item.found_in||[]).map(s=>`<span title="${esc(s)}">${SRC[s]||s}</span>`).join('');
+            el.innerHTML=`
+                <div class="h-card-img">
+                    <img src="${esc(img)}" alt="${esc(item.name)}" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK}'">
+                    <div class="h-card-rank">#${rank}</div>
+                    <div class="h-card-signal">${deep?'🔵 Deep':'🩷 Conv'}</div>
+                    ${shinyStar}
+                </div>
+                <div class="h-card-body">
+                    <div class="h-card-header">
+                        <div class="h-card-name" title="${esc(item.name)}">${esc(item.name)}</div>
+                        <div class="h-card-gem"><i class="fa-solid fa-gem" style="font-size:8px;color:#fbbf24"></i>${fmt(Math.round(item.gem_score))}</div>
+                    </div>
+                    <div class="h-card-author">@${esc(item.author)}</div>
+                    <div class="h-card-desc">${esc(item.tagline)||'No description.'}</div>
+                    <div class="h-card-tags">${tags}</div>
+                    <div class="h-card-stats">
+                        <span class="h-stat"><i class="fa-solid fa-heart" style="color:#f43f5e"></i><strong>${fmt(item.favorites)}</strong></span>
+                        <span class="h-stat"><i class="fa-solid fa-download" style="color:#22c55e"></i><strong>${fmt(item.downloads)}</strong></span>
+                        <span class="h-stat"><i class="fa-solid fa-comments" style="color:#06b6d4"></i><strong>${fmt(item.chats)}</strong></span>
+                        <span class="h-stat"><i class="fa-solid fa-message" style="color:#8b5cf6"></i><strong>${fmt(item.messages)}</strong></span>
+                        ${ageStat}
+                        <div class="h-bar-wrap">
+                            <span class="h-bar-label" style="color:#818cf8">D</span>
+                            <div class="h-micro-track"><div class="h-micro-fill-d" style="width:${barPct(item.norm_depth)}%"></div></div>
+                            <span class="h-bar-val">${item.smoothed_depth.toFixed(0)}</span>
+                            <span class="h-bar-label" style="color:#f472b6">C</span>
+                            <div class="h-micro-track"><div class="h-micro-fill-c" style="width:${barPct(item.norm_conv)}%"></div></div>
+                            <span class="h-bar-val">${(item.smoothed_conversion*100).toFixed(1)}%</span>
+                        </div>
+                        <div class="h-card-sources">${srcs}</div>
+                    </div>
+                </div>`;
+            return el;
+        }
+
+        function renderChunk() {
+            if(rendered>=allR.length) return false;
+            const grid=document.getElementById('results-grid');
+            const end=Math.min(rendered+CHUNK,allR.length);
+            const frag=document.createDocumentFragment();
+            for(let i=rendered;i<end;i++) frag.appendChild(makeCard(allR[i],i+1));
+            grid.appendChild(frag);
+            rendered=end;
+            document.getElementById('stat-filtered').textContent=rendered+' / '+allR.length;
+            if(rendered>=allR.length){document.getElementById('end-marker').classList.remove('hidden');document.getElementById('load-more').classList.add('hidden');return false;}
+            return true;
+        }
+
+        const obs=new IntersectionObserver(entries=>{
+            for(const e of entries){
+                if(e.isIntersecting&&!isLoading&&allR.length>0&&rendered<allR.length){
+                    document.getElementById('load-more').classList.remove('hidden');
+                    requestAnimationFrame(()=>{renderChunk();if(rendered>=allR.length) document.getElementById('load-more').classList.add('hidden');});
+                }
+            }
+        },{rootMargin:SCROLL_MARGIN});
+        obs.observe(document.getElementById('scroll-sentinel'));
+
+        function resetSearch() {
+            document.getElementById('query-input').value = '';
+            document.getElementById('topics-input').value = '';
+            document.getElementById('tag-or-checkbox').checked = true;
+            document.getElementById('sort-select').value = 'gem_score';
+            document.getElementById('min-favs').value = '1410';
+            document.getElementById('min-chats').value = '10';
+            document.getElementById('min-msgs').value = '50';
+            document.getElementById('min-days').value = '';
+            document.getElementById('max-days').value = '';
+            document.getElementById('nsfw-checkbox').checked = true;
+            doSearch();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function doSearch() {
+            if(searchController) searchController.abort();  // cancel any previous in-flight search
+            searchController=new AbortController();
+            const signal=searchController.signal;
+            const grid=document.getElementById('results-grid');
+            const status=document.getElementById('status-bar');
+            const stats=document.getElementById('batch-stats');
+            grid.innerHTML='';allR=[];rendered=0;
+            document.getElementById('load-more').classList.add('hidden');
+            document.getElementById('end-marker').classList.add('hidden');
+            status.classList.remove('hidden');stats.classList.add('hidden');
+            document.getElementById('progress-bar').style.width='0%';
+            document.getElementById('status-text').textContent='Querying 7 pools...';
+            isLoading=true;
+
+            try{
+                const params=new URLSearchParams({
+                    query:document.getElementById('query-input').value,
+                    topics:document.getElementById('topics-input').value,
+                    inclusive_or:document.getElementById('tag-or-checkbox').checked,
+                    sort:document.getElementById('sort-select').value,
+                    min_favs:document.getElementById('min-favs').value,
+                    min_chats:document.getElementById('min-chats').value,
+                    min_msgs:document.getElementById('min-msgs').value,
+                    nsfw:document.getElementById('nsfw-checkbox').checked,
+                    exclude_tags: document.getElementById('exclude-input').value,
+                    min_days_ago: document.getElementById('min-days').value,
+                    max_days_ago: document.getElementById('max-days').value,
+                });
+                const resp=await fetch(`/api/query?${params}`, {signal});
+                let data;
+                try { data=await resp.json(); }
+                catch(_) { throw new Error('Server error ('+resp.status+'). Please try again.'); }
+                if(signal.aborted) return;  // a newer search started while this one was in flight
+                document.getElementById('progress-bar').style.width='100%';
+                status.classList.add('hidden');isLoading=false;
+
+                if(data.error){grid.innerHTML=`<div class="col-span-full text-center py-12 text-red-400 border border-red-900/50 bg-red-950/20 rounded-xl"><p class="font-semibold">Error</p><p class="text-sm mt-1 text-gray-500">${esc(data.error)}</p></div>`;return;}
+                allR=data.results;
+                if(!allR.length){grid.innerHTML=`<div class="col-span-full text-center py-12 text-gray-400 border border-gray-800 bg-gray-900/20 rounded-xl"><p class="font-semibold">No results</p></div>`;return;}
+
+                const f=allR[0];
+                document.getElementById('stat-pool').textContent=fmt(data.pool_size_raw);
+                document.getElementById('stat-unique').textContent=fmt(data.pool_size_unique);
+                document.getElementById('stat-med-depth').textContent=(f.median_depth||0).toFixed(1);
+                document.getElementById('stat-med-conv').textContent=((f.median_conv||0)*100).toFixed(2)+'%';
+                document.getElementById('stat-filtered').textContent='0 / '+allR.length;
+                document.getElementById('stat-top-gem').textContent=fmt(Math.round(f.gem_score));
+                stats.classList.remove('hidden');
+                buildTagBackground(allR);  // ← add this line
+                renderChunk();
+            }catch(err){
+                if(err.name==='AbortError') return;  // superseded by a newer search; leave its state intact
+                console.error(err);status.classList.add('hidden');isLoading=false;
+                grid.innerHTML=`<div class="col-span-full text-center py-12 text-red-400"><p>${esc(err.message)}</p></div>`;
+            }
+        }
+
+        document.getElementById('search-form').addEventListener('submit',e=>{e.preventDefault();doSearch();});
+        window.addEventListener('DOMContentLoaded',()=>{
+            document.getElementById('query-input').value='';
+            doSearch();
+            loadShowcase();
+        });
+    </script>
+</body>
+</html>

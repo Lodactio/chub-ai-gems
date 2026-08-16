@@ -1,0 +1,433 @@
+
+        * { box-sizing: border-box; }
+        body { background-color: #0f111a; color: #e2e8f0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; }
+        .text-gradient { background: linear-gradient(135deg, #a5b4fc, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* ─── Showcase Banner ─── */
+        .showcase-wrap {
+            position: relative;
+            background: linear-gradient(180deg, #131627 0%, #0f111a 100%);
+            border: 1px solid #1e2235;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            padding: 0;
+        }
+        .showcase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px 0;
+        }
+        .showcase-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .showcase-title-emoji {
+            font-size: 20px;
+        }
+        .showcase-title-label {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .showcase-title-label:hover {
+            color: #a5b4fc;
+        }
+        .showcase-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .showcase-nav-btn {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid #252a3a;
+            color: #94a3b8;
+            width: 28px; height: 28px;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 12px;
+        }
+        .showcase-nav-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: #6366f1;
+            color: #e2e8f0;
+        }
+        .showcase-counter {
+            font-size: 11px;
+            color: #4b5563;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* Carousel track */
+        .showcase-viewport {
+            overflow: hidden;
+            position: relative;
+        }
+        .showcase-track {
+            display: flex;
+            transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .showcase-slide {
+            min-width: 100%;
+            padding: 10px 16px 14px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .showcase-slide::-webkit-scrollbar { display: none; }
+
+        /* Individual showcase card thumbnail */
+        .sc-thumb {
+            flex-shrink: 0;
+            width: 187px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .sc-thumb:hover {
+            transform: translateY(-3px);
+        }
+        .sc-thumb-img {
+            width: 187px;
+            height: 230px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #0d0f1a;
+            border: 1px solid #252a3a;
+            transition: border-color 0.2s;
+        }
+        .sc-thumb:hover .sc-thumb-img {
+            border-color: #6366f1;
+        }
+        .sc-thumb-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .sc-thumb-name {
+            font-size: 10px;
+            font-weight: 600;
+            color: #c7d2fe;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .sc-thumb-author {
+            font-size: 9px;
+            color: #4b5563;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .sc-thumb-gem {
+            font-size: 9px;
+            color: #34d399;
+            font-weight: 600;
+            margin-top: 1px;
+        }
+
+        /* Dots */
+        .showcase-dots {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            padding: 0 16px 12px;
+        }
+        .showcase-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #252a3a;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .showcase-dot.active {
+            background: #6366f1;
+            transform: scale(1.3);
+        }
+        .showcase-dot:hover {
+            background: #4f46e5;
+        }
+
+        /* ─── Card Grid ─── */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+            gap: 10px;
+        }
+
+        /* ─── Horizontal Card ─── */
+        .h-card {
+            display: flex;
+            background: #161926;
+            border: 2px solid #1e2235;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+            height: 225px;
+        }
+        .h-card:hover {
+            border-color: #6366f1;
+            box-shadow: 0 0 16px rgba(99, 102, 241, 0.12);
+            transform: translateY(-2px);
+        }
+        .h-card-img {
+            width: 180px; min-width: 130px; height: 100%;
+            position: relative; overflow: hidden; background: #0d0f1a; flex-shrink: 0;
+        }
+        .h-card-img img {
+            width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;
+        }
+        .h-card:hover .h-card-img img { transform: scale(1.06); }
+        .h-card-rank {
+            position: absolute; top: 5px; left: 5px;
+            background: rgba(99, 102, 241, 0.88);
+            color: #fff; font-size: 9px; font-weight: 700;
+            padding: 1px 6px; border-radius: 5px; z-index: 2;
+        }
+        .h-card-signal {
+            position: absolute; bottom: 5px; left: 5px;
+            background: rgba(15, 17, 26, 0.82);
+            color: #e2e8f0; font-size: 8px; font-weight: 600;
+            padding: 2px 5px; border-radius: 4px; z-index: 2;
+        }
+        .h-card-body {
+            flex: 1; display: flex; flex-direction: column;
+            padding: 10px 12px; min-width: 0; overflow: hidden;
+        }
+        .h-card-header {
+            display: flex; justify-content: space-between;
+            align-items: flex-start; gap: 8px; margin-bottom: 2px;
+        }
+        .h-card-name {
+            font-size: 14px; font-weight: 700; color: #e2e8f0;
+            white-space: break-spaces; white-space-collapse: break-spaces; text-wrap-mode: wrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;
+        }
+        .h-card-gem {
+            flex-shrink: 0; background: rgba(16, 185, 129, 0.18);
+            color: #34d399; font-size: 10px; font-weight: 700;
+            padding: 2px 7px; border-radius: 5px;
+            display: flex; align-items: center; gap: 3px; white-space: nowrap;
+        }
+        .h-card-author {
+            font-size: 11px; color: #4b5563; margin-bottom: 4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .h-card-desc {
+            font-size: 12px; color: #7a839b; line-height: 1.45;
+            overflow: hidden; display: -webkit-box;
+            -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            flex-shrink: 1; margin-bottom: auto;
+        }
+        .h-card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+        .h-card-tag {
+            font-size: 9px; color: #64748b; background: #0f111a;
+            padding: 1px 6px; border-radius: 4px; border: 1px solid #1e2235; white-space: nowrap;
+        }
+        .h-card-stats {
+            display: flex; align-items: center; gap: 2px;
+            margin-top: 6px; padding-top: 6px;
+            border-top: 1px solid #1e2235; flex-wrap: wrap;
+        }
+        .h-stat { font-size: 10px; color: #4b5563; display: flex; align-items: center; gap: 3px; margin-right: 6px; }
+        .h-stat i { font-size: 9px; }
+        .h-stat strong { color: #94a3b8; font-weight: 600; }
+
+        .h-bar-wrap { display: flex; align-items: center; gap: 3px; margin-left: auto; }
+        .h-bar-label { font-size: 8px; font-weight: 700; width: 10px; text-align: center; }
+        .h-micro-track { width: 36px; height: 3px; background: #0f111a; border-radius: 2px; overflow: hidden; }
+        .h-micro-fill-d { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #6366f1, #a5b4fc); }
+        .h-micro-fill-c { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #ec4899, #fb7185); }
+        .h-bar-val { font-size: 8px; color: #64748b; min-width: 20px; }
+
+        .h-card-sources { display: flex; gap: 2px; margin-left: 4px; }
+        .h-card-sources span { font-size: 8px; line-height: 1; }
+
+        #scroll-sentinel { height: 1px; width: 100%; }
+        .load-ind { text-align: center; padding: 24px; color: #64748b; font-size: 13px; }
+        .load-ind.done { color: #4b5563; }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .h-card-enter { animation: cardIn 0.25s ease forwards; }
+
+        .pool-progress { height: 4px; background: #1e2235; border-radius: 2px; overflow: hidden; margin-top: 8px; }
+        .pool-progress-bar { height: 100%; background: linear-gradient(90deg, #6366f1, #a5b4fc); border-radius: 2px; transition: width 0.3s; }
+
+                /* ─── Tag Cloud Background ─── */
+        .tag-bg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .tag-bg span {
+            position: absolute;
+            color: #6366f1;
+            font-weight: 700;
+            white-space: nowrap;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: opacity 0.3s, color 0.3s;
+            user-select: none;
+        }
+        .tag-bg span:hover,
+        .tag-bg span:focus-visible {
+            opacity: 0.5 !important;
+            color: #a5b4fc;
+        }
+        /* Visible keyboard-focus ring for all click-activated controls */
+        [role="button"]:focus-visible {
+            outline: 2px solid #818cf8;
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        /* ─── Shiny Card Tiers ─── */
+        /* Tier 1: Gem 50+ — Gold foil */
+        .h-card.shiny-gold {
+            border-color: rgba(251, 191, 36, 0.4);
+            background: linear-gradient(135deg, #1a1714 0%, #1f1a10 50%, #1a1714 100%);
+        }
+        .h-card.shiny-gold:hover {
+            border-color: rgba(251, 191, 36, 0.7);
+            box-shadow: 0 0 200px rgba(251, 191, 36, 0.7), 0 0 270px rgba(251, 191, 36, 0.2);
+        }
+        .h-card.shiny-gold .h-card-body {
+            background: linear-gradient(135deg,
+                rgba(251, 191, 36, 0.01) 0%,
+                rgba(251, 191, 36, 0.08) 25%,
+                rgba(251, 191, 36, 0.01) 50%,
+                rgba(251, 191, 36, 0.08) 75%,
+                rgba(251, 191, 36, 0.01) 100%);
+            background-size: 200% 200%;
+            animation: foilShimmer 6s ease infinite;
+        }
+        .h-card.shiny-gold .h-card-name { color: #fbbf24; }
+        .h-card.shiny-gold .h-card-gem { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .h-card.shiny-gold .h-card-rank { background: rgba(251, 191, 36, 0.9); }
+
+        /* Tier 2: Depth 100+ — Blue holographic */
+        .h-card.shiny-depth {
+            border-color: rgba(99, 102, 241, 0.4);
+            background: linear-gradient(135deg, #111428 0%, #161938 50%, #111428 100%);
+        }
+        .h-card.shiny-depth:hover {
+            border-color: rgba(99, 102, 241, 0.7);
+            box-shadow: 0 0 200px rgba(99, 102, 241, 0.2), 0 0 270px rgba(99, 102, 241, 0.08);
+        }
+        .h-card.shiny-depth .h-card-body {
+            background: linear-gradient(135deg,
+                rgba(99, 102, 241, 0.01) 0%,
+                rgba(165, 180, 252, 0.08) 25%,
+                rgba(99, 102, 241, 0.01) 50%,
+                rgba(165, 180, 252, 0.08) 75%,
+                rgba(99, 102, 241, 0.01) 100%);
+            background-size: 200% 200%;
+            animation: foilShimmer 6s ease infinite;
+        }
+        .h-card.shiny-depth .h-card-name { color: #a5b4fc; }
+        .h-card.shiny-depth .h-card-signal { background: rgba(99, 102, 241, 0.6); }
+
+        /* Tier 3: Conversion 100%+ — Pink prismatic */
+        .h-card.shiny-conv {
+            border-color: rgba(236, 72, 153, 0.4);
+            background: linear-gradient(135deg, #1a1118 0%, #201220 50%, #1a1118 100%);
+        }
+        .h-card.shiny-conv:hover {
+            border-color: rgba(236, 72, 153, 0.7);
+            box-shadow: 0 0 200px rgba(236, 72, 153, 0.2), 0 0 270px rgba(236, 72, 153, 0.08);
+        }
+        .h-card.shiny-conv .h-card-body {
+            background: linear-gradient(135deg,
+                rgba(236, 72, 153, 0.01) 0%,
+                rgba(251, 113, 133, 0.08) 25%,
+                rgba(236, 72, 153, 0.01) 50%,
+                rgba(251, 113, 133, 0.08) 75%,
+                rgba(236, 72, 153, 0.01) 100%);
+            background-size: 200% 200%;
+            animation: foilShimmer 6s ease infinite;
+        }
+        .h-card.shiny-conv .h-card-name { color: #f9a8d4; }
+        .h-card.shiny-conv .h-card-signal { background: rgba(236, 72, 153, 0.6); }
+
+        /* Multi-shiny: card qualifies for 2+ tiers — rainbow foil */
+        .h-card.shiny-multi {
+            border-color: rgba(251, 191, 36, 0.5);
+            background: linear-gradient(135deg, #1a1714 0%, #161938 33%, #201220 66%, #1a1714 100%);
+        }
+        .h-card.shiny-multi:hover {
+            border-color: rgba(251, 191, 36, 0.8);
+            box-shadow:
+                0 0 24px rgba(251, 191, 36, 0.15),
+                0 0 24px rgba(99, 102, 241, 0.15),
+                0 0 24px rgba(236, 72, 153, 0.15),
+                0 0 60px rgba(251, 191, 36, 0.06);
+        }
+        .h-card.shiny-multi .h-card-body {
+            background: linear-gradient(135deg,
+                rgba(251, 191, 36, 0.1) 0%,
+                rgba(99, 102, 241, 0.1) 25%,
+                rgba(236, 72, 153, 0.1) 50%,
+                rgba(99, 102, 241, 0.1) 75%,
+                rgba(251, 191, 36, 0.1) 100%);
+            background-size: 300% 300%;
+            animation: foilShimmer 4s ease infinite;
+        }
+        .h-card.shiny-multi .h-card-name {
+            background: linear-gradient(90deg, #fbbf24, #a5b4fc, #f9a8d4, #fbbf24);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: nameShimmer 3s linear infinite;
+        }
+        .h-card.shiny-multi .h-card-rank {
+            background: linear-gradient(135deg, rgba(251,191,36,0.9), rgba(236,72,153,0.9));
+        }
+        .h-card.shiny-multi .h-card-gem {
+            background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(236,72,153,0.2));
+            color: #fbbf24;
+        }
+
+        /* Shiny star indicator */
+        .shiny-star {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 14px;
+            z-index: 3;
+            filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.6));
+            animation: starPulse 2s ease infinite;
+        }
+
+        @keyframes foilShimmer {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+        @keyframes nameShimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        @keyframes starPulse {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.15); }
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f111a; }
+        ::-webkit-scrollbar-thumb { background: #252a3a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+    
