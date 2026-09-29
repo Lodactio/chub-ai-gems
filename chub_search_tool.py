@@ -25,7 +25,7 @@ def get_seasonal_topic():
         ((10, 1),  (10, 31), {'query': 'Horror halloween',       'emoji': '🎃', 'label': 'Halloween',    'min_favs': 0, 'tags': 'halloween,horror,spooky,monster'}),
         ((12, 1),  (12, 31), {'query': 'Christmas winter',       'emoji': '🎄', 'label': 'Christmas',    'min_favs': 0, 'tags': 'christmas,winter,holiday,snow'}),
         ((1, 1),   (1, 7),   {'query': 'New Year party',         'emoji': '🎆', 'label': 'New Year',     'min_favs': 0, 'tags': 'new year,party,celebration'}),
-        ((2, 7),   (2, 21),  {'query': 'Romance love valentine', 'emoji': '💘', 'label': "Valentine's",  'min_favs': 0, 'tags': 'valentine,romance,love,dating'}),
+        ((2, 7),   (2, 21),  {'query': 'Romance love valentine', 'emoji': '💘', 'label': "Valentine's",  'min_favs': 0, 'tags': 'valentine,romance,dating'}),
         ((3, 14),  (3, 20),  {'query': 'drinking lucky irish',   'emoji': '☘️', 'label': "St Patrick's", 'min_favs': 0, 'tags': 'irish,lucky,drinking'}),
         ((3, 30),  (4, 2),   {'query': 'Trickster prank',        'emoji': '🃏', 'label': 'April Fools',  'min_favs': 0, 'tags': 'trickster,prank,jester'}),
         ((3, 28),  (4, 15),  {'query': 'rabbit',                 'emoji': '🐣', 'label': 'Easter',       'min_favs': 0, 'tags': 'easter,rabbit,bunny,spring'}),
@@ -38,7 +38,7 @@ def get_seasonal_topic():
             return topic
 
     # Default fallback
-    return {'query': 'Goth', 'emoji': '🧛', 'label': 'Goth', 'min_favs': 300, 'tags': 'goth,gothic,vampire,dark'}
+    return {'query': '', 'emoji': '🧛', 'label': 'Goth', 'min_favs': 0, 'tags': 'goth,gothic'}
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -110,22 +110,22 @@ SORT_STRATEGIES = [
     'trending',
     'created_at',
 ]
-PAGES_PER_SORT = 3
+PAGES_PER_SORT = 6
 API_PER_PAGE = 200
 
 SHOWCASE_TOPICS = [
-    {'query': 'RPG',                'emoji': '🎲', 'label': 'RPG',              'min_favs': 0,  'tags': 'rpg'},
+    {'query': '',                'emoji': '🎲', 'label': 'RPG',              'min_favs': 15,  'tags': 'rpg'},
     {'query': '', 'emoji': '🎩', 'label': 'Gentlemen', 'min_favs': 0, 'tags': 'fempov,male,human', 'exclusive': True, 'exclude_tags': ['anypov', 'feet', 'scat', 'diaper', 'vore', 'furry', 'genderswap', 'malepov', 'feminization', 'bbc', 'pokemon', 'femdom', 'ntr', 'cuckold', 'femboy', 'horny', 'cum toilet', 'goblin', 'cumdump', 'female monster']},
-    {'query': 'Fantasy',            'emoji': '⚔️', 'label': 'Fantasy',          'min_favs': 50,  'tags': 'fantasy,medieval,magic,elves'},
+    {'query': '',            'emoji': '⚔️', 'label': 'Fantasy',          'min_favs': 0,  'tags': 'fantasy,medieval,magic,elf'},
     {'query': '',            'emoji': '⚔️', 'label': 'Dark Fantasy',          'min_favs': 0,  'tags': 'dark fantasy,slave'},
-    {'query': 'Romance',            'emoji': '💕', 'label': 'Romance',          'min_favs': 30,  'tags': 'romance,love,dating,relationship,slowburn'},
-    {'query': 'sci-fi',    'emoji': '🚀', 'label': 'Science Fiction',  'min_favs': 0,   'tags': 'sci-fi,science fiction,cyberpunk,space'},
-    {'query': '',             'emoji': '⚔️', 'label': 'Isekai',           'min_favs': 100, 'tags': 'isekai,reincarnation'},
+    {'query': '',            'emoji': '💕', 'label': 'Romance',          'min_favs': 0,  'tags': 'romance,dating,relationship,slowburn,Enemies to Lovers,yandere,tsundere,deredere,kuudere,caring'},
+    {'query': '',    'emoji': '🚀', 'label': 'Science Fiction',  'min_favs': 0,   'tags': 'Sci-fi,Science Fiction,Cyberpunk,Space,Robot Girl,Robot,Android,AI,Science'},
+    {'query': '',             'emoji': '⚔️', 'label': 'Isekai',           'min_favs': 0, 'tags': 'isekai,reincarnation'},
     get_seasonal_topic(),
-    {'query': '',              'emoji': '🌸', 'label': 'Anime',            'min_favs': 0,   'tags': 'anime,manga,waifu,anime game characters,webtoon,kemonomimi,mech pilot'},
+    {'query': '',              'emoji': '🌸', 'label': 'Anime',            'min_favs': 0,   'tags': 'anime,manga,waifu,anime game characters,webtoon,kemonomimi,mecha'},
     {'query': 'Roleplay',           'emoji': '🎭', 'label': 'Roleplay',         'min_favs': 0,   'tags': 'roleplay,rp'},
-    {'query': '',  'emoji': '🧟', 'label': 'Apocalypse',       'min_favs': 3,   'tags': 'apocalypse,Post-apocalypse,zombies,zombie Apocalypse', 'exclude_tags': ['futanari', 'gentle femdom']},
-    {'query': 'Wholesome',          'emoji': '💛', 'label': 'Wholesome',        'min_favs': 0,   'tags': 'wholesome,cute,comfort,slice of life,can be wholesome,can be sexy'},
+    {'query': '',  'emoji': '🧟', 'label': 'Apocalypse',       'min_favs': 0,   'tags': 'apocalypse,Post-apocalypse,zombies,zombie Apocalypse', 'exclude_tags': ['futanari', 'gentle femdom']},
+    {'query': '',          'emoji': '💛', 'label': 'Wholesome',        'min_favs': 0,   'tags': 'wholesome,cute,comfort,fluff', 'exclude_tags': ['angst', 'rude', 'public humiliation']},
     {'query': '',     'emoji': '☯', 'label': 'The Dao',        'min_favs': 0,   'tags': 'wuxia,xianxia,cultivation,dual cultivation,murim,ancient china,china'},
 ]
 SHOWCASE_CARDS_PER_TOPIC = 10
@@ -136,7 +136,7 @@ _showcase_cache = {'data': None, 'ts': 0}
 _showcase_lock = threading.Lock()
 _search_cache = {}  # key: frozen params (sort-independent) → {'processed', 'total', 'pool_size_raw', 'pool_size_unique', 'ts'}
 _search_lock = threading.Lock()
-SEARCH_CACHE_TTL = 3600  # 60 minutes
+SEARCH_CACHE_TTL = 21600  # 6 hours
 
 
 def calculate_smoothed_depth(n_messages, n_chats):
@@ -198,7 +198,12 @@ def fetch_chub_page(query, api_page, sort_by, nsfw, headers, topics='', inclusiv
     if max_days_ago is not None:
         params['max_days_ago'] = str(max_days_ago)
     try:
-        r = requests.get(url, params=params, headers=headers, timeout=15)
+        r = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=(5, 45)
+        )
         if r.status_code != 200:
             app.logger.warning(f"Chub fetch non-200 (sort={sort_by} page={api_page}): {r.status_code}")
             return []
@@ -231,7 +236,12 @@ def fetch_showcase_topic(topic, headers):
         else:
             params['inclusive_or'] = 'true'
     try:
-        r = requests.get(url, params=params, headers=headers, timeout=10)
+        r = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=(5, 30)
+        )
         if r.status_code != 200:
             app.logger.warning(f"Showcase fetch non-200 (topic={topic.get('label')}): {r.status_code}")
             return []
@@ -840,15 +850,15 @@ HTML_TEMPLATE = """
                 </div>
                 <div class="w-[70px]">
                     <label for="min-favs" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Fav</label>
-                    <input type="number" id="min-favs" value="1410" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <input type="number" id="min-favs" value="0" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
                 </div>
                 <div class="w-[70px]">
                     <label for="min-chats" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Chat</label>
-                    <input type="number" id="min-chats" value="10" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <input type="number" id="min-chats" value="0" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
                 </div>
                 <div class="w-[70px]">
                     <label for="min-msgs" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Msg</label>
-                    <input type="number" id="min-msgs" value="50" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <input type="number" id="min-msgs" value="0" class="w-full bg-gray-950/80 border border-gray-800 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
                 </div>
                 <div class="w-[80px]" title="Only cards at least this many days old">
                     <label for="min-days" class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Days</label>
@@ -1214,9 +1224,9 @@ HTML_TEMPLATE = """
             document.getElementById('topics-input').value = '';
             document.getElementById('tag-or-checkbox').checked = true;
             document.getElementById('sort-select').value = 'gem_score';
-            document.getElementById('min-favs').value = '1410';
-            document.getElementById('min-chats').value = '10';
-            document.getElementById('min-msgs').value = '50';
+            document.getElementById('min-favs').value = '0';
+            document.getElementById('min-chats').value = '0';
+            document.getElementById('min-msgs').value = '0';
             document.getElementById('min-days').value = '';
             document.getElementById('max-days').value = '';
             document.getElementById('nsfw-checkbox').checked = true;
@@ -1381,7 +1391,7 @@ def rss_feed(category=None):
     response = app.response_class(rss, mimetype='application/rss+xml')
     return response
 
-SEARCH_CACHE_MAX = 200
+SEARCH_CACHE_MAX = 400
 
 SORT_KEYS = {
     'gem_score': lambda x: x.get('gem_score', 0),
