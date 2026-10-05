@@ -47,8 +47,8 @@ SHOWCASE_CARDS_PER_TOPIC = 10
 
 # Caching
 SHOWCASE_CACHE_TTL = 86400  # 24 hours, in seconds
-SEARCH_CACHE_TTL = 21600  # 6 hours, in seconds
-SEARCH_CACHE_MAX = 400  # entries
+SEARCH_CACHE_TTL = 86400  # 24 hours, in seconds
+SEARCH_CACHE_MAX = 400  # entries aka full searches, caches X max individual searches
 SEARCH_CACHE_STALE_TTL_MULTIPLIER = 2
 
 # Request validation and RSS
