@@ -29,6 +29,9 @@ C_DEPTH = 20.0
 PRIOR_DEPTH = 12.0
 C_CONV = 20.0
 PRIOR_CONV = 0.05
+DEPTH_MULT_GEM = 1.0 # Gem scoring weight Depth for tweaking the gem score itself
+CONV_MULT_GEM = 1.0 # Gem scoring weight Conv for tweaking the gem score itself
+DEPTH_CAP_GEM = 75.0 # gem scoring only, after ~75 depth the the contribution to scoring is essentially noise
 MIN_MEDIAN_DEPTH = 0.001
 MIN_MEDIAN_CONVERSION = 0.0001
 
@@ -235,7 +238,11 @@ def calculate_gem_scores(cards):
     for c in cards:
         norm_depth = c['smoothed_depth'] / median_depth
         norm_conv = c['smoothed_conversion'] / median_conv
-        engagement = norm_depth + norm_conv
+        gem_depth = min(c['smoothed_depth'], DEPTH_CAP_GEM) / median_depth
+        engagement = (
+            gem_depth * DEPTH_MULT_GEM
+            + norm_conv * CONV_MULT_GEM
+        )
         c['gem_score'] = engagement * math.log(c['favorites'] + 1)
         c['norm_depth'] = norm_depth
         c['norm_conv'] = norm_conv
