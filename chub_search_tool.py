@@ -15,6 +15,85 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, render_template_string, request, jsonify, Response
 from datetime import datetime, timezone
 
+# ─── Tunable constants ───
+# Keep operational and display settings here. Durations include their units.
+# HTTP status codes, zero defaults, indexing, calendar dates, and CSS styling
+# stay at their use sites because they are protocol/structural values or data.
+
+# Rate limiting (per client IP)
+RATE_LIMIT_MAX = 10
+RATE_LIMIT_WINDOW = 60  # seconds
+
+# Scoring: Bayesian smoothing and minimum normalization denominators
+C_DEPTH = 20.0
+PRIOR_DEPTH = 12.0
+C_CONV = 20.0
+PRIOR_CONV = 0.05
+MIN_MEDIAN_DEPTH = 0.001
+MIN_MEDIAN_CONVERSION = 0.0001
+
+# API fetching and concurrency
+PAGES_PER_SORT = 6
+API_PER_PAGE = 200
+API_CONNECT_TIMEOUT_SECONDS = 5
+SEARCH_READ_TIMEOUT_SECONDS = 45
+SHOWCASE_READ_TIMEOUT_SECONDS = 30
+SEARCH_FETCH_WORKERS = 18
+SHOWCASE_FETCH_WORKERS = 10
+SHOWCASE_FETCH_LIMIT = 60
+SHOWCASE_MIN_CHATS = 5
+SHOWCASE_MIN_MESSAGES = 20
+SHOWCASE_CARDS_PER_TOPIC = 10
+
+# Caching
+SHOWCASE_CACHE_TTL = 86400  # 24 hours, in seconds
+SEARCH_CACHE_TTL = 21600  # 6 hours, in seconds
+SEARCH_CACHE_MAX = 400  # entries
+SEARCH_CACHE_STALE_TTL_MULTIPLIER = 2
+
+# Request validation and RSS
+QUERY_MAX_LENGTH = 200
+TOPICS_MAX_LENGTH = 500
+EXCLUDE_TAGS_MAX_LENGTH = 500
+MAX_COUNT_FILTER = 999999
+MAX_CARD_AGE_DAYS = 36500
+RSS_MIN_GEM_SCORE = 0
+RSS_MAX_ITEMS = 50
+RSS_TTL_MINUTES = 60
+
+# Server and startup output
+SERVER_HOST = '0.0.0.0'
+SERVER_PORT = 5123
+SERVER_WORKERS = 1  # Shared process for the in-memory caches and rate limiter
+SERVER_THREADS = 8
+SERVER_MAX_REQUESTS = 1000
+SERVER_MAX_REQUESTS_JITTER = 50
+SERVER_TIMEOUT_SECONDS = 30
+SERVER_GRACEFUL_TIMEOUT_SECONDS = 10
+STARTUP_SEPARATOR_WIDTH = 60
+
+# Browser display settings (injected into the HTML template)
+SHOWCASE_INTERVAL_MS = 6000
+RESULT_RENDER_CHUNK = 60
+SCROLL_MARGIN_PX = 1000
+SHINY_GEM_SCORE_THRESHOLD = 60
+SHINY_DEPTH_THRESHOLD = 30
+SHINY_CONVERSION_THRESHOLD = 0.20
+SHINY_MULTI_MIN_SIGNALS = 2
+CARD_TAG_LIMIT = 4
+SIGNAL_BAR_FULL_SCALE = 3
+SIGNAL_BAR_MIN_PERCENT = 2
+TAG_BACKGROUND_LIMIT = 800
+TAG_BACKGROUND_HEIGHT_MULTIPLIER = 3
+TAG_BACKGROUND_COLUMNS = 8
+TAG_BACKGROUND_MIN_FONT_PX = 20
+TAG_BACKGROUND_FONT_RANGE_PX = 32
+TAG_BACKGROUND_MIN_OPACITY = 0.08
+TAG_BACKGROUND_OPACITY_RANGE = 0.08
+TAG_BACKGROUND_X_JITTER = 0.7
+TAG_BACKGROUND_Y_JITTER = 0.6
+TAG_BACKGROUND_ROTATION_RANGE_DEGREES = 30
+
 def get_seasonal_topic():
     """Return a showcase topic based on the current date."""
     today = datetime.now()
@@ -67,8 +146,6 @@ def require_basic_auth():
 
 # ─── Rate Limiter ───
 _rate_limits = defaultdict(list)
-RATE_LIMIT_MAX = 10
-RATE_LIMIT_WINDOW = 60
 _rate_lock = threading.Lock()
 
 def rate_limit(f):
@@ -97,10 +174,6 @@ def security_headers(response):
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     return response
 
-C_DEPTH = 20.0
-PRIOR_DEPTH = 12.0
-C_CONV = 20.0
-PRIOR_CONV = 0.05
 
 SORT_STRATEGIES = [
     'chat_count',
@@ -110,8 +183,6 @@ SORT_STRATEGIES = [
     'trending',
     'created_at',
 ]
-PAGES_PER_SORT = 6
-API_PER_PAGE = 200
 
 SHOWCASE_TOPICS = [
     {'query': '',                'emoji': '🎲', 'label': 'RPG',              'min_favs': 15,  'tags': 'rpg'},
@@ -128,15 +199,12 @@ SHOWCASE_TOPICS = [
     {'query': '',          'emoji': '💛', 'label': 'Wholesome',        'min_favs': 0,   'tags': 'wholesome,cute,comfort,fluff', 'exclude_tags': ['angst', 'rude', 'public humiliation']},
     {'query': '',     'emoji': '☯', 'label': 'The Dao',        'min_favs': 0,   'tags': 'wuxia,xianxia,cultivation,dual cultivation,murim,ancient china,china'},
 ]
-SHOWCASE_CARDS_PER_TOPIC = 10
-SHOWCASE_CACHE_TTL = 86400  # 24 hours
 
 # Simple in-memory cache for showcase data
 _showcase_cache = {'data': None, 'ts': 0}
 _showcase_lock = threading.Lock()
 _search_cache = {}  # key: frozen params (sort-independent) → {'processed', 'total', 'pool_size_raw', 'pool_size_unique', 'ts'}
 _search_lock = threading.Lock()
-SEARCH_CACHE_TTL = 21600  # 6 hours
 
 
 def calculate_smoothed_depth(n_messages, n_chats):
@@ -162,8 +230,8 @@ def calculate_gem_scores(cards):
         return cards
     depths = [c['smoothed_depth'] for c in cards]
     convs = [c['smoothed_conversion'] for c in cards]
-    median_depth = max(statistics.median(depths), 0.001) if depths else 1.0
-    median_conv = max(statistics.median(convs), 0.0001) if convs else 1.0
+    median_depth = max(statistics.median(depths), MIN_MEDIAN_DEPTH) if depths else 1.0
+    median_conv = max(statistics.median(convs), MIN_MEDIAN_CONVERSION) if convs else 1.0
     for c in cards:
         norm_depth = c['smoothed_depth'] / median_depth
         norm_conv = c['smoothed_conversion'] / median_conv
@@ -202,7 +270,7 @@ def fetch_chub_page(query, api_page, sort_by, nsfw, headers, topics='', inclusiv
             url,
             params=params,
             headers=headers,
-            timeout=(5, 45)
+            timeout=(API_CONNECT_TIMEOUT_SECONDS, SEARCH_READ_TIMEOUT_SECONDS)
         )
         if r.status_code != 200:
             app.logger.warning(f"Chub fetch non-200 (sort={sort_by} page={api_page}): {r.status_code}")
@@ -219,7 +287,7 @@ def fetch_showcase_topic(topic, headers):
     url = "https://api.chub.ai/search"
     params = {
         'search': topic.get('query', ''),
-        'first': 60,
+        'first': SHOWCASE_FETCH_LIMIT,
         'page': '1',
         'sort': 'download_count',
         'venus': 'false',
@@ -240,7 +308,7 @@ def fetch_showcase_topic(topic, headers):
             url,
             params=params,
             headers=headers,
-            timeout=(5, 30)
+            timeout=(API_CONNECT_TIMEOUT_SECONDS, SHOWCASE_READ_TIMEOUT_SECONDS)
         )
         if r.status_code != 200:
             app.logger.warning(f"Showcase fetch non-200 (topic={topic.get('label')}): {r.status_code}")
@@ -255,7 +323,7 @@ def fetch_showcase_topic(topic, headers):
             messages = int(node.get('nMessages', 0) or 0)
             downloads = int(node.get('starCount', 0) or 0)
 
-            if chats < 5 or messages < 20:
+            if chats < SHOWCASE_MIN_CHATS or messages < SHOWCASE_MIN_MESSAGES:
                 continue
 
             fp = node.get('fullPath', '')
@@ -318,7 +386,7 @@ def get_showcase_data():
         }
 
         result = []
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=SHOWCASE_FETCH_WORKERS) as executor:
             futures = {
             executor.submit(fetch_showcase_topic, t, headers): t
             for t in SHOWCASE_TOPICS
@@ -933,7 +1001,7 @@ HTML_TEMPLATE = """
     <script>
         function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
         function fmt(n) { if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n); }
-        function barPct(v) { return Math.min(Math.max((v/3)*100,2),100); }
+        function barPct(v) { return Math.min(Math.max((v/{{ SIGNAL_BAR_FULL_SCALE | tojson }})*100,{{ SIGNAL_BAR_MIN_PERCENT | tojson }}),100); }
         // Make any element keyboard-operable as a button (role, focus, Enter/Space).
         function makeButton(el, label, handler) {
             el.setAttribute('role', 'button');
@@ -955,7 +1023,7 @@ HTML_TEMPLATE = """
 
             const sorted = Object.entries(freq)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 80);
+                .slice(0, {{ TAG_BACKGROUND_LIMIT | tojson }});
 
             if (!sorted.length) return;
 
@@ -967,24 +1035,24 @@ HTML_TEMPLATE = """
             const range = Math.max(maxCount - minCount, 1);
 
             const vw = window.innerWidth;
-            const vh = window.innerHeight * 3;
+            const vh = window.innerHeight * {{ TAG_BACKGROUND_HEIGHT_MULTIPLIER | tojson }};
 
-            const cols = 6;
+            const cols = {{ TAG_BACKGROUND_COLUMNS | tojson }};
             const rows = Math.ceil(sorted.length / cols);
             const cellW = vw / cols;
             const cellH = vh / rows;
 
             sorted.forEach(([tag, count], i) => {
                 const ratio = (count - minCount) / range;
-                const size = 12 + ratio * 32;
-                const opacity = 0.04 + ratio * 0.08;
+                const size = {{ TAG_BACKGROUND_MIN_FONT_PX | tojson }} + ratio * {{ TAG_BACKGROUND_FONT_RANGE_PX | tojson }};
+                const opacity = {{ TAG_BACKGROUND_MIN_OPACITY | tojson }} + ratio * {{ TAG_BACKGROUND_OPACITY_RANGE | tojson }};
 
                 const col = i % cols;
                 const row = Math.floor(i / cols);
 
-                const x = col * cellW + (Math.random() * cellW * 0.7);
-                const y = row * cellH + (Math.random() * cellH * 0.6);
-                const rotate = (Math.random() - 0.5) * 30;
+                const x = col * cellW + (Math.random() * cellW * {{ TAG_BACKGROUND_X_JITTER | tojson }});
+                const y = row * cellH + (Math.random() * cellH * {{ TAG_BACKGROUND_Y_JITTER | tojson }});
+                const rotate = (Math.random() - 0.5) * {{ TAG_BACKGROUND_ROTATION_RANGE_DEGREES | tojson }};
 
                 const span = document.createElement('span');
                 span.textContent = tag;
@@ -1016,7 +1084,7 @@ HTML_TEMPLATE = """
         let scData = [];
         let scIdx = 0;
         let scTimer = null;
-        const SC_INTERVAL = 6000;
+        const SC_INTERVAL = {{ SHOWCASE_INTERVAL_MS | tojson }};
 
         async function loadShowcase() {
             try {
@@ -1123,8 +1191,8 @@ HTML_TEMPLATE = """
         }
 
         // ─── Main Search ───
-        const CHUNK=60;
-        const SCROLL_MARGIN='600px';
+        const CHUNK={{ RESULT_RENDER_CHUNK | tojson }};
+        const SCROLL_MARGIN={{ SCROLL_MARGIN_PX | tojson }}+'px';
         let allR=[], rendered=0, isLoading=false;
         let searchController=null;  // aborts an in-flight search when a newer one starts
 
@@ -1132,14 +1200,14 @@ HTML_TEMPLATE = """
             const el=document.createElement('div');
 
             // Determine shiny tiers
-            const isGem50 = item.gem_score >= 60;
-            const isDepth100 = item.smoothed_depth >= 30;
-            const isConv100 = item.smoothed_conversion >= 0.20;
+            const isGem50 = item.gem_score >= {{ SHINY_GEM_SCORE_THRESHOLD | tojson }};
+            const isDepth100 = item.smoothed_depth >= {{ SHINY_DEPTH_THRESHOLD | tojson }};
+            const isConv100 = item.smoothed_conversion >= {{ SHINY_CONVERSION_THRESHOLD | tojson }};
             const shinyCount = (isGem50?1:0) + (isDepth100?1:0) + (isConv100?1:0);
 
             let shinyClass = '';
             let shinyStar = '';
-            if (shinyCount >= 2) {
+            if (shinyCount >= {{ SHINY_MULTI_MIN_SIGNALS | tojson }}) {
                 shinyClass = ' shiny-multi';
                 shinyStar = '<div class="shiny-star">🌟</div>';
             } else if (isGem50) {
@@ -1159,7 +1227,7 @@ HTML_TEMPLATE = """
             const deep = isConv100 ? false : isDepth100 ? true : item.norm_depth > item.norm_conv;
             const ageStat = (item.days_old==null) ? '' :
                 `<span class="h-stat" title="Created ${esc((item.created_at||'').slice(0,10))}"><i class="fa-regular fa-calendar" style="color:#f59e0b"></i><strong>${item.days_old===0?'today':fmt(item.days_old)}</strong></span>`;
-            const tags=(item.topics||[]).slice(0,4).map(t=>`<span class="h-card-tag">${esc(t)}</span>`).join('');
+            const tags=(item.topics||[]).slice(0,{{ CARD_TAG_LIMIT | tojson }}).map(t=>`<span class="h-card-tag">${esc(t)}</span>`).join('');
             const srcs=(item.found_in||[]).map(s=>`<span title="${esc(s)}">${SRC[s]||s}</span>`).join('');
             el.innerHTML=`
                 <div class="h-card-img">
@@ -1306,7 +1374,29 @@ HTML_TEMPLATE = """
 
 @app.route('/')
 def home():
-    return render_template_string(HTML_TEMPLATE)
+    return render_template_string(
+        HTML_TEMPLATE,
+        CARD_TAG_LIMIT=CARD_TAG_LIMIT,
+        RESULT_RENDER_CHUNK=RESULT_RENDER_CHUNK,
+        SCROLL_MARGIN_PX=SCROLL_MARGIN_PX,
+        SHINY_CONVERSION_THRESHOLD=SHINY_CONVERSION_THRESHOLD,
+        SHINY_DEPTH_THRESHOLD=SHINY_DEPTH_THRESHOLD,
+        SHINY_GEM_SCORE_THRESHOLD=SHINY_GEM_SCORE_THRESHOLD,
+        SHINY_MULTI_MIN_SIGNALS=SHINY_MULTI_MIN_SIGNALS,
+        SHOWCASE_INTERVAL_MS=SHOWCASE_INTERVAL_MS,
+        SIGNAL_BAR_FULL_SCALE=SIGNAL_BAR_FULL_SCALE,
+        SIGNAL_BAR_MIN_PERCENT=SIGNAL_BAR_MIN_PERCENT,
+        TAG_BACKGROUND_COLUMNS=TAG_BACKGROUND_COLUMNS,
+        TAG_BACKGROUND_FONT_RANGE_PX=TAG_BACKGROUND_FONT_RANGE_PX,
+        TAG_BACKGROUND_HEIGHT_MULTIPLIER=TAG_BACKGROUND_HEIGHT_MULTIPLIER,
+        TAG_BACKGROUND_LIMIT=TAG_BACKGROUND_LIMIT,
+        TAG_BACKGROUND_MIN_FONT_PX=TAG_BACKGROUND_MIN_FONT_PX,
+        TAG_BACKGROUND_MIN_OPACITY=TAG_BACKGROUND_MIN_OPACITY,
+        TAG_BACKGROUND_OPACITY_RANGE=TAG_BACKGROUND_OPACITY_RANGE,
+        TAG_BACKGROUND_ROTATION_RANGE_DEGREES=TAG_BACKGROUND_ROTATION_RANGE_DEGREES,
+        TAG_BACKGROUND_X_JITTER=TAG_BACKGROUND_X_JITTER,
+        TAG_BACKGROUND_Y_JITTER=TAG_BACKGROUND_Y_JITTER,
+    )
 
 
 @app.route('/api/showcase')
@@ -1325,7 +1415,7 @@ def showcase_api():
 @rate_limit
 def rss_feed(category=None):
     """RSS feed of top gems, optionally filtered by category."""
-    min_gem = 0
+    min_gem = RSS_MIN_GEM_SCORE
 
     # Use showcase data as the source — already cached and scored
     showcase = get_showcase_data()
@@ -1350,7 +1440,7 @@ def rss_feed(category=None):
                 })
 
     items.sort(key=lambda x: x.get('gem_score', 0), reverse=True)
-    items = items[:50]
+    items = items[:RSS_MAX_ITEMS]
 
     now = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S +0000')
 
@@ -1380,10 +1470,10 @@ def rss_feed(category=None):
 <rss version="2.0">
     <channel>
         <title>{title}</title>
-        <link>http://localhost:5123</link>
+        <link>http://localhost:{SERVER_PORT}</link>
         <description>High-engagement character card discoveries from Chub.ai</description>
         <lastBuildDate>{now}</lastBuildDate>
-        <ttl>60</ttl>
+        <ttl>{RSS_TTL_MINUTES}</ttl>
         {rss_items}
     </channel>
 </rss>"""
@@ -1391,7 +1481,6 @@ def rss_feed(category=None):
     response = app.response_class(rss, mimetype='application/rss+xml')
     return response
 
-SEARCH_CACHE_MAX = 400
 
 SORT_KEYS = {
     'gem_score': lambda x: x.get('gem_score', 0),
@@ -1414,19 +1503,19 @@ def _sorted_response(entry, sort_strategy):
 @app.route('/api/query')
 @rate_limit
 def query_api():
-    query = request.args.get('query', '')[:200]
-    topics = request.args.get('topics', '')[:500]
-    exclude_raw = request.args.get('exclude_tags', '')[:500]
+    query = request.args.get('query', '')[:QUERY_MAX_LENGTH]
+    topics = request.args.get('topics', '')[:TOPICS_MAX_LENGTH]
+    exclude_raw = request.args.get('exclude_tags', '')[:EXCLUDE_TAGS_MAX_LENGTH]
     exclude_set = {t.lower().strip() for t in exclude_raw.split(',') if t.strip()}
     inclusive_or = request.args.get('inclusive_or', 'true') == 'true'
     sort_strategy = request.args.get('sort', 'gem_score')
     if sort_strategy not in ('gem_score', 'depth', 'conversion', 'favorites', 'downloads', 'chats', 'messages'):
         sort_strategy = 'gem_score'
-    try: min_favs = max(0, min(int(request.args.get('min_favs', '0') or 0), 999999))
+    try: min_favs = max(0, min(int(request.args.get('min_favs', '0') or 0), MAX_COUNT_FILTER))
     except (ValueError, TypeError): min_favs = 0
-    try: min_chats = max(0, min(int(request.args.get('min_chats', '0') or 0), 999999))
+    try: min_chats = max(0, min(int(request.args.get('min_chats', '0') or 0), MAX_COUNT_FILTER))
     except (ValueError, TypeError): min_chats = 0
-    try: min_msgs = max(0, min(int(request.args.get('min_msgs', '0') or 0), 999999))
+    try: min_msgs = max(0, min(int(request.args.get('min_msgs', '0') or 0), MAX_COUNT_FILTER))
     except (ValueError, TypeError): min_msgs = 0
     nsfw = request.args.get('nsfw', 'true') == 'true'
 
@@ -1435,7 +1524,7 @@ def query_api():
         if not raw:
             return None
         try:
-            return max(0, min(int(raw), 36500))
+            return max(0, min(int(raw), MAX_CARD_AGE_DAYS))
         except (ValueError, TypeError):
             return None
     min_days_ago = parse_days('min_days_ago')
@@ -1465,7 +1554,7 @@ def query_api():
             for pg in range(1, PAGES_PER_SORT + 1):
                 jobs.append((sort_by, pg))
 
-        with ThreadPoolExecutor(max_workers=18) as executor:
+        with ThreadPoolExecutor(max_workers=SEARCH_FETCH_WORKERS) as executor:
             futures = {
                 executor.submit(fetch_chub_page, query, pg, sort_by, nsfw, headers, topics, inclusive_or, min_days_ago, max_days_ago): (sort_by, pg)
                 for sort_by, pg in jobs
@@ -1549,7 +1638,7 @@ def query_api():
 
         with _search_lock:
             _search_cache[cache_key] = new_entry
-            stale = [k for k, v in _search_cache.items() if (now - v['ts']) > SEARCH_CACHE_TTL * 2]
+            stale = [k for k, v in _search_cache.items() if (now - v['ts']) > SEARCH_CACHE_TTL * SEARCH_CACHE_STALE_TTL_MULTIPLIER]
             for k in stale:
                 _search_cache.pop(k, None)
             while len(_search_cache) > SEARCH_CACHE_MAX:
@@ -1569,9 +1658,9 @@ def query_api():
 
 if __name__ == '__main__':
     total_calls = len(SORT_STRATEGIES) * PAGES_PER_SORT
-    print("=" * 60)
+    print("=" * STARTUP_SEPARATOR_WIDTH)
     print("  💎 Chub AI Gems — Showcase Banner + Horizontal Cards")
-    print("=" * 60)
+    print("=" * STARTUP_SEPARATOR_WIDTH)
     print(f"  Search: {len(SORT_STRATEGIES)} pools × {PAGES_PER_SORT} pages = {total_calls} calls")
     print(f"  Showcase: {len(SHOWCASE_TOPICS)} topics × top {SHOWCASE_CARDS_PER_TOPIC} each (cached {SHOWCASE_CACHE_TTL}s)")
     print(f"  Gem = (depth/med + conv/med) × log(favs + 1)")
@@ -1579,9 +1668,9 @@ if __name__ == '__main__':
         print(f"  Basic auth: ENABLED (user: {AUTH_USERNAME})")
     else:
         print("  Basic auth: disabled (set GEMS_AUTH_ENABLED=true to enable)")
-    print("=" * 60)
-    print("  http://localhost:5123")
-    print("=" * 60)
+    print("=" * STARTUP_SEPARATOR_WIDTH)
+    print(f"  http://localhost:{SERVER_PORT}")
+    print("=" * STARTUP_SEPARATOR_WIDTH)
 
     try:
         from gunicorn.app.wsgiapp import run
@@ -1590,17 +1679,17 @@ if __name__ == '__main__':
         # so one shared process keeps them coherent (app is I/O-bound on the Chub API).
         sys.argv = [
             'gunicorn',
-            '-w', '1',
-            '-b', '0.0.0.0:5123',
-            '--max-requests', '1000',        # Recycle after 1000 requests
-            '--max-requests-jitter', '50',    # Stagger so they don't all die at once
-            '--timeout', '30',                # Kill stuck workers
-            '--graceful-timeout', '10',       # Give them 10s to finish up
+            '-w', str(SERVER_WORKERS),
+            '-b', f'{SERVER_HOST}:{SERVER_PORT}',
+            '--max-requests', str(SERVER_MAX_REQUESTS),        # Recycle after the configured request count
+            '--max-requests-jitter', str(SERVER_MAX_REQUESTS_JITTER),    # Stagger so they don't all die at once
+            '--timeout', str(SERVER_TIMEOUT_SECONDS),                # Kill stuck workers
+            '--graceful-timeout', str(SERVER_GRACEFUL_TIMEOUT_SECONDS),       # Allow active requests to finish
             '--worker-class', 'gthread',      # Threaded workers for your I/O-heavy API calls
-            '--threads', '8',                 # 8 threads per worker
+            '--threads', str(SERVER_THREADS),                 # Threads per worker
             'chub_search_tool:app'
         ]
         run()
     except ImportError:
         from waitress import serve
-        serve(app, host='0.0.0.0', port=5123, threads=8)
+        serve(app, host=SERVER_HOST, port=SERVER_PORT, threads=SERVER_THREADS)
