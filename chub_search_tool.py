@@ -176,10 +176,10 @@ def security_headers(response):
 
 
 SORT_STRATEGIES = [
-    'chat_count',
+    'msgs_user',
     'download_count',
     'default',
-    'fav_count',
+    'n_favorites',
     'trending',
     'created_at',
 ]
@@ -1078,7 +1078,7 @@ HTML_TEMPLATE = """
         }
         const FALLBACK='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none"><rect width="200" height="200" fill="#1e1b4b"/><text x="100" y="110" text-anchor="middle" font-size="64" fill="#6366f1">?</text></svg>');
         function safeImg(u){ u=String(u??''); const l=u.toLowerCase(); return (l.startsWith('http://')||l.startsWith('https://')) ? u : FALLBACK; }
-        const SRC={'chat_count':'💬','download_count':'⬇️','default':'📨','fav_count':'❤️','trending':'🔥','created_at':'🆕','rating':'⭐'};
+        const SRC={'msgs_user':'💬','download_count':'⬇️','default':'📨','n_favorites':'❤️','trending':'🔥','created_at':'🆕','rating':'⭐'};
 
         // ─── Showcase ───
         let scData = [];
