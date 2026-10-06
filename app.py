@@ -1,4 +1,4 @@
-# chub_search_tool.py
+# app.py
 
 import os
 import hmac
@@ -127,7 +127,7 @@ logging.basicConfig(level=logging.INFO)
 
 # ─── Basic Auth (toggleable) ───
 # Enable by setting GEMS_AUTH_ENABLED=true and a username/password:
-#   GEMS_AUTH_ENABLED=true GEMS_AUTH_USERNAME=me GEMS_AUTH_PASSWORD=secret python chub_search_tool.py
+#   GEMS_AUTH_ENABLED=true GEMS_AUTH_USERNAME=me GEMS_AUTH_PASSWORD=secret python app.py
 AUTH_ENABLED = os.environ.get('GEMS_AUTH_ENABLED', 'false').strip().lower() in ('1', 'true', 'yes', 'on')
 AUTH_USERNAME = os.environ.get('GEMS_AUTH_USERNAME', 'admin')
 AUTH_PASSWORD = os.environ.get('GEMS_AUTH_PASSWORD', '')
@@ -1694,7 +1694,7 @@ if __name__ == '__main__':
             '--graceful-timeout', str(SERVER_GRACEFUL_TIMEOUT_SECONDS),       # Allow active requests to finish
             '--worker-class', 'gthread',      # Threaded workers for your I/O-heavy API calls
             '--threads', str(SERVER_THREADS),                 # Threads per worker
-            'chub_search_tool:app'
+            'app:app'
         ]
         run()
     except ImportError:
