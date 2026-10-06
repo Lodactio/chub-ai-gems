@@ -12,5 +12,5 @@ call venv\Scripts\activate.bat
 pip install -r requirements.txt
 
 :: Run
-python chub_search_tool.py
+python app.py
 pause

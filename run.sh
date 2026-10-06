@@ -12,4 +12,4 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Run
-python chub_search_tool.py
+python app.py
