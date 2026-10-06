@@ -66,7 +66,7 @@ RSS_TTL_MINUTES = 60
 
 # Server and startup output
 SERVER_HOST = '0.0.0.0'
-SERVER_PORT = 5123
+SERVER_PORT = int(os.environ.get("PORT", "5123"))
 SERVER_WORKERS = 1  # Shared process for the in-memory caches and rate limiter
 SERVER_THREADS = 8
 SERVER_MAX_REQUESTS = 1000
