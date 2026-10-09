@@ -144,3 +144,12 @@ bash run.sh
 | `GEMS_AUTH_PASSWORD` | *(empty)* | Login password — must be set when auth is enabled, otherwise all requests are rejected |
 
 When disabled (the default), the app behaves exactly as before.
+
+## Running tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest -q
+```
+
+The tests mock all Chub API calls, so no network access is needed.
