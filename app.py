@@ -195,13 +195,21 @@ SHOWCASE_TOPICS = [
     {'query': '',            'emoji': '💕', 'label': 'Romance',          'min_favs': 0,  'tags': 'romance,dating,relationship,slowburn,Enemies to Lovers,yandere,tsundere,deredere,kuudere,caring'},
     {'query': '',    'emoji': '🚀', 'label': 'Science Fiction',  'min_favs': 0,   'tags': 'Sci-fi,Science Fiction,Cyberpunk,Space,Robot Girl,Robot,Android,AI,Science'},
     {'query': '',             'emoji': '⚔️', 'label': 'Isekai',           'min_favs': 0, 'tags': 'isekai,reincarnation'},
-    get_seasonal_topic(),
     {'query': '',              'emoji': '🌸', 'label': 'Anime',            'min_favs': 0,   'tags': 'anime,manga,waifu,anime game characters,webtoon,kemonomimi,mecha'},
     {'query': 'Roleplay',           'emoji': '🎭', 'label': 'Roleplay',         'min_favs': 0,   'tags': 'roleplay,rp'},
     {'query': '',  'emoji': '🧟', 'label': 'Apocalypse',       'min_favs': 0,   'tags': 'apocalypse,Post-apocalypse,zombies,zombie Apocalypse', 'exclude_tags': ['futanari', 'gentle femdom']},
     {'query': '',          'emoji': '💛', 'label': 'Wholesome',        'min_favs': 0,   'tags': 'wholesome,cute,comfort,fluff', 'exclude_tags': ['angst', 'rude', 'public humiliation']},
     {'query': '',     'emoji': '☯', 'label': 'The Dao',        'min_favs': 0,   'tags': 'wuxia,xianxia,cultivation,dual cultivation,murim,ancient china,china'},
 ]
+
+
+def _showcase_topics():
+    """Return the showcase topics with today's seasonal topic in its usual slot."""
+    topics = list(SHOWCASE_TOPICS)
+    anchor = next(i for i, t in enumerate(SHOWCASE_TOPICS) if t['label'] == 'Isekai')
+    topics.insert(anchor + 1, get_seasonal_topic())
+    return topics
+
 
 # Simple in-memory cache for showcase data
 _showcase_cache = {'data': None, 'ts': 0}
@@ -388,6 +396,8 @@ def get_showcase_data():
         if _showcase_cache['data'] and (now - _showcase_cache['ts']) < SHOWCASE_CACHE_TTL:
             return _showcase_cache['data']
 
+        topics = _showcase_topics()
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                           'AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -399,7 +409,7 @@ def get_showcase_data():
         with ThreadPoolExecutor(max_workers=SHOWCASE_FETCH_WORKERS) as executor:
             futures = {
             executor.submit(fetch_showcase_topic, t, headers): t
-            for t in SHOWCASE_TOPICS
+            for t in topics
         }
             for future in as_completed(futures):
                 topic = futures[future]
@@ -419,10 +429,10 @@ def get_showcase_data():
                 })
 
         # Preserve the original topic order
-        order = {t['label']: i for i, t in enumerate(SHOWCASE_TOPICS)}
+        order = {t['label']: i for i, t in enumerate(topics)}
         result.sort(key=lambda x: order.get(x['label'], 99))
 
-        if failed == len(SHOWCASE_TOPICS) and _showcase_cache['data']:
+        if failed == len(topics) and _showcase_cache['data']:
             # Every topic failed: keep serving the previous data
             result = _showcase_cache['data']
         # On any failure, retry in 5 minutes rather than refetching on every page load
@@ -1699,7 +1709,7 @@ if __name__ == '__main__':
     print("  💎 Chub AI Gems — Showcase Banner + Horizontal Cards")
     print("=" * STARTUP_SEPARATOR_WIDTH)
     print(f"  Search: {len(SORT_STRATEGIES)} pools × {PAGES_PER_SORT} pages = {total_calls} calls")
-    print(f"  Showcase: {len(SHOWCASE_TOPICS)} topics × top {SHOWCASE_CARDS_PER_TOPIC} each (cached {SHOWCASE_CACHE_TTL}s)")
+    print(f"  Showcase: {len(_showcase_topics())} topics × top {SHOWCASE_CARDS_PER_TOPIC} each (cached {SHOWCASE_CACHE_TTL}s)")
     print(f"  Gem = (depth/med + conv/med) × log(favs + 1)")
     if AUTH_ENABLED:
         print(f"  Basic auth: ENABLED (user: {AUTH_USERNAME})")
