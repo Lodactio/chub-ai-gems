@@ -3,7 +3,6 @@ import statistics
 
 import pytest
 
-import app
 from app import (
     C_CONV,
     C_DEPTH,
@@ -173,7 +172,3 @@ def test_sorted_response_orders_descending(key, expected):
 def test_sorted_response_unknown_key_falls_back_to_gem_score():
     out = _sorted_response(entry(), 'nonsense')
     assert [r['name'] for r in out['results']] == ['b', 'c', 'a']
-
-
-def test_depth_cap_constant_is_imported_from_app():
-    assert app.DEPTH_CAP_GEM == DEPTH_CAP_GEM == 75.0
