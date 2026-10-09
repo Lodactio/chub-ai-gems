@@ -35,7 +35,7 @@ $$\text{smoothed depth} = \frac{\text{messages} + C \times \text{prior}}{\text{c
   - 🌟 Rainbow — multiple signals firing at once
 - **Showcase Carousel** — rotating featured categories (RPG, Fantasy, Romance, etc.) with seasonal holiday themes
 - **Tag Cloud Background** — clickable tag cloud built from search results
-- **Smart Caching** — search results cached 60 min, showcase cached 24h
+- **Smart Caching** — search and showcase results cached 24h
 - **Production Ready** — rate limiting, input validation, security headers, WSGI server
 
 ## Quick Start
@@ -66,7 +66,7 @@ This will:
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python chub_search_tool.py
+python app.py
 ```
 
 ## Usage
@@ -75,9 +75,9 @@ python chub_search_tool.py
 |---|---|---|
 | **Search** | blank (global top) | Keyword search against Chub's API |
 | **Sort** | 💎 Gem Score | How results are ranked |
-| **Min Fav** | 1410 | Minimum favorites threshold |
-| **Min Chat** | 10 | Minimum chat count |
-| **Min Msg** | 50 | Minimum message count |
+| **Min Fav** | 0 | Minimum favorites threshold |
+| **Min Chat** | 0 | Minimum chat count |
+| **Min Msg** | 0 | Minimum message count |
 | **Min Days** | any | Only cards at least N days old |
 | **Max Days** | any | Only cards at most N days old (e.g. `7` = last week's releases) |
 | **NSFW** | ✅ | Include NSFW cards |
@@ -87,7 +87,6 @@ Min/Max Days filter on card **creation date** and are applied server-side by the
 - Click the **💎 Chub AI Gems** title to reset to defaults
 - Click a **showcase category label** to search that topic
 - Click **background tags** to search that tag
-- Set all minimums to **0** for hidden gems discovery mode
 
 ## How Scoring Works
 
@@ -107,8 +106,8 @@ That's thumbnail bait. Gems ranks it lower than a card with 500 favorites, 2,000
 ## Project Structure
 
 ```
-chub_search_tool/
-├── chub_search_tool.py   # Everything — server, API, frontend
+chub-ai-gems/
+├── app.py                # Everything — server, API, frontend
 ├── requirements.txt      # flask, requests, gunicorn, waitress
 ├── run.sh                # Linux/Mac launcher
 ├── run.bat               # Windows launcher
@@ -117,7 +116,7 @@ chub_search_tool/
 
 ## Configuration
 
-All tunable constants are at the top of `chub_search_tool.py`:
+All tunable constants are at the top of `app.py`:
 
 ```python
 C_DEPTH = 20.0          # Bayesian smoothing strength for depth
