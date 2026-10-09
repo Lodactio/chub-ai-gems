@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 os.environ.setdefault("GEMS_AUTH_ENABLED", "false")
 
-import app as app_module  # noqa: E402
+import app as app_module
 
 
 @pytest.fixture(autouse=True)

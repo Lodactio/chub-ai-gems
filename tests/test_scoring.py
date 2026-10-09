@@ -5,9 +5,18 @@ import pytest
 
 import app
 from app import (
-    C_CONV, C_DEPTH, DEPTH_CAP_GEM, MIN_MEDIAN_CONVERSION, MIN_MEDIAN_DEPTH,
-    PRIOR_CONV, PRIOR_DEPTH, SORT_KEYS, _sorted_response,
-    calculate_gem_scores, calculate_smoothed_conversion, calculate_smoothed_depth,
+    C_CONV,
+    C_DEPTH,
+    DEPTH_CAP_GEM,
+    MIN_MEDIAN_CONVERSION,
+    MIN_MEDIAN_DEPTH,
+    PRIOR_CONV,
+    PRIOR_DEPTH,
+    SORT_KEYS,
+    _sorted_response,
+    calculate_gem_scores,
+    calculate_smoothed_conversion,
+    calculate_smoothed_depth,
 )
 
 
