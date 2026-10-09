@@ -422,11 +422,11 @@ def get_showcase_data():
         order = {t['label']: i for i, t in enumerate(SHOWCASE_TOPICS)}
         result.sort(key=lambda x: order.get(x['label'], 99))
 
-        if failed == len(SHOWCASE_TOPICS):
-            # Every topic failed: keep any previous data rather than caching empties
-            return _showcase_cache['data'] or result
-        if failed == 0:
-            _showcase_cache = {'data': result, 'ts': now}
+        if failed == len(SHOWCASE_TOPICS) and _showcase_cache['data']:
+            # Every topic failed: keep serving the previous data
+            result = _showcase_cache['data']
+        # On any failure, retry in 5 minutes rather than refetching on every page load
+        _showcase_cache = {'data': result, 'ts': now if not failed else now - SHOWCASE_CACHE_TTL + 300}
         return result
 
 
