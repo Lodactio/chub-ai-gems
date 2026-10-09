@@ -195,13 +195,21 @@ SHOWCASE_TOPICS = [
     {'query': '',            'emoji': '💕', 'label': 'Romance',          'min_favs': 0,  'tags': 'romance,dating,relationship,slowburn,Enemies to Lovers,yandere,tsundere,deredere,kuudere,caring'},
     {'query': '',    'emoji': '🚀', 'label': 'Science Fiction',  'min_favs': 0,   'tags': 'Sci-fi,Science Fiction,Cyberpunk,Space,Robot Girl,Robot,Android,AI,Science'},
     {'query': '',             'emoji': '⚔️', 'label': 'Isekai',           'min_favs': 0, 'tags': 'isekai,reincarnation'},
-    get_seasonal_topic(),
     {'query': '',              'emoji': '🌸', 'label': 'Anime',            'min_favs': 0,   'tags': 'anime,manga,waifu,anime game characters,webtoon,kemonomimi,mecha'},
     {'query': 'Roleplay',           'emoji': '🎭', 'label': 'Roleplay',         'min_favs': 0,   'tags': 'roleplay,rp'},
     {'query': '',  'emoji': '🧟', 'label': 'Apocalypse',       'min_favs': 0,   'tags': 'apocalypse,Post-apocalypse,zombies,zombie Apocalypse', 'exclude_tags': ['futanari', 'gentle femdom']},
     {'query': '',          'emoji': '💛', 'label': 'Wholesome',        'min_favs': 0,   'tags': 'wholesome,cute,comfort,fluff', 'exclude_tags': ['angst', 'rude', 'public humiliation']},
     {'query': '',     'emoji': '☯', 'label': 'The Dao',        'min_favs': 0,   'tags': 'wuxia,xianxia,cultivation,dual cultivation,murim,ancient china,china'},
 ]
+
+
+def _showcase_topics():
+    """Return the showcase topics with today's seasonal topic in its usual slot."""
+    topics = list(SHOWCASE_TOPICS)
+    anchor = next(i for i, t in enumerate(SHOWCASE_TOPICS) if t['label'] == 'Isekai')
+    topics.insert(anchor + 1, get_seasonal_topic())
+    return topics
+
 
 # Simple in-memory cache for showcase data
 _showcase_cache = {'data': None, 'ts': 0}
@@ -281,12 +289,14 @@ def fetch_chub_page(query, api_page, sort_by, nsfw, headers, topics='', inclusiv
         )
         if r.status_code != 200:
             app.logger.warning(f"Chub fetch non-200 (sort={sort_by} page={api_page}): {r.status_code}")
-            return []
+            return None
         data = r.json()
         return data.get('data', {}).get('nodes', [])
+    except requests.exceptions.Timeout:
+        raise  # let the caller tell timeouts (504) from other failures (502)
     except Exception as e:
         app.logger.warning(f"Chub fetch failed (sort={sort_by} page={api_page}): {e}")
-        return []
+        return None
 
 
 def fetch_showcase_topic(topic, headers):
@@ -319,7 +329,7 @@ def fetch_showcase_topic(topic, headers):
         )
         if r.status_code != 200:
             app.logger.warning(f"Showcase fetch non-200 (topic={topic.get('label')}): {r.status_code}")
-            return []
+            return None
         data = r.json()
         nodes = data.get('data', {}).get('nodes', [])
 
@@ -371,7 +381,7 @@ def fetch_showcase_topic(topic, headers):
         return cards[:SHOWCASE_CARDS_PER_TOPIC]
     except Exception as e:
         app.logger.warning(f"Showcase topic '{topic.get('label')}' failed: {e}")
-        return []
+        return None
 
 
 def get_showcase_data():
@@ -386,6 +396,8 @@ def get_showcase_data():
         if _showcase_cache['data'] and (now - _showcase_cache['ts']) < SHOWCASE_CACHE_TTL:
             return _showcase_cache['data']
 
+        topics = _showcase_topics()
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                           'AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -393,14 +405,18 @@ def get_showcase_data():
         }
 
         result = []
+        failed = 0
         with ThreadPoolExecutor(max_workers=SHOWCASE_FETCH_WORKERS) as executor:
             futures = {
             executor.submit(fetch_showcase_topic, t, headers): t
-            for t in SHOWCASE_TOPICS
+            for t in topics
         }
             for future in as_completed(futures):
                 topic = futures[future]
                 cards = future.result()
+                if cards is None:
+                    failed += 1
+                    cards = []
                 result.append({
                     'query': topic['query'],
                     'emoji': topic['emoji'],
@@ -413,10 +429,14 @@ def get_showcase_data():
                 })
 
         # Preserve the original topic order
-        order = {t['label']: i for i, t in enumerate(SHOWCASE_TOPICS)}
+        order = {t['label']: i for i, t in enumerate(topics)}
         result.sort(key=lambda x: order.get(x['label'], 99))
 
-        _showcase_cache = {'data': result, 'ts': now}
+        if failed == len(topics) and _showcase_cache['data']:
+            # Every topic failed: keep serving the previous data
+            result = _showcase_cache['data']
+        # On any failure, retry in 5 minutes rather than refetching on every page load
+        _showcase_cache = {'data': result, 'ts': now if not failed else now - SHOWCASE_CACHE_TTL + 300}
         return result
 
 
@@ -1555,6 +1575,8 @@ def query_api():
 
         card_map = {}
         total_raw = 0
+        failed = 0
+        timed_out = 0
 
         jobs = []
         for sort_by in SORT_STRATEGIES:
@@ -1568,7 +1590,15 @@ def query_api():
             }
             for future in as_completed(futures):
                 sort_by, pg = futures[future]
-                nodes = future.result()
+                try:
+                    nodes = future.result()
+                except requests.exceptions.Timeout:
+                    app.logger.warning(f"Chub fetch timed out (sort={sort_by} page={pg})")
+                    nodes = None
+                    timed_out += 1
+                if nodes is None:
+                    failed += 1
+                    continue
                 total_raw += len(nodes)
                 for node in nodes:
                     fp = node.get('fullPath', '')
@@ -1583,6 +1613,12 @@ def query_api():
                             card_map[fp]['node']['topics'] = list(existing | incoming)
                     else:
                         card_map[fp] = {'node': node, 'found_in': {sort_by}}
+
+        if failed == len(jobs):
+            # Nothing came back: report the upstream failure and don't cache it
+            if timed_out:
+                return jsonify({'error': 'Chub API timed out.'}), 504
+            return jsonify({'error': 'Could not connect to Chub API.'}), 502
 
         pool_unique = len(card_map)
 
@@ -1643,6 +1679,10 @@ def query_api():
         new_entry = {'processed': processed, 'total': len(processed),
                      'pool_size_raw': total_raw, 'pool_size_unique': pool_unique, 'ts': now}
 
+        if failed:
+            # Partial results: serve them, but don't cache so the next request retries
+            return jsonify(_sorted_response(new_entry, sort_strategy))
+
         with _search_lock:
             _search_cache[cache_key] = new_entry
             stale = [k for k, v in _search_cache.items() if (now - v['ts']) > SEARCH_CACHE_TTL * SEARCH_CACHE_STALE_TTL_MULTIPLIER]
@@ -1669,7 +1709,7 @@ if __name__ == '__main__':
     print("  💎 Chub AI Gems — Showcase Banner + Horizontal Cards")
     print("=" * STARTUP_SEPARATOR_WIDTH)
     print(f"  Search: {len(SORT_STRATEGIES)} pools × {PAGES_PER_SORT} pages = {total_calls} calls")
-    print(f"  Showcase: {len(SHOWCASE_TOPICS)} topics × top {SHOWCASE_CARDS_PER_TOPIC} each (cached {SHOWCASE_CACHE_TTL}s)")
+    print(f"  Showcase: {len(_showcase_topics())} topics × top {SHOWCASE_CARDS_PER_TOPIC} each (cached {SHOWCASE_CACHE_TTL}s)")
     print(f"  Gem = (depth/med + conv/med) × log(favs + 1)")
     if AUTH_ENABLED:
         print(f"  Basic auth: ENABLED (user: {AUTH_USERNAME})")
